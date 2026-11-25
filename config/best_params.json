@@ -1,0 +1,16 @@
+{
+  "lightgbm": {
+    "params": {
+      "num_leaves": 36,
+      "learning_rate": 0.024423869652647052,
+      "min_child_samples": 102,
+      "subsample": 0.6488228512282146,
+      "colsample_bytree": 0.6668578594140873,
+      "reg_lambda": 0.2702051927323664,
+      "n_estimators": 600
+    },
+    "val_pinball": 0.58481,
+    "n_trials": 8,
+    "tuned_utc": "2026-11-25T20:11:36.518279+00:00"
+  }
+}
