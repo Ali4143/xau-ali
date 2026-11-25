@@ -145,11 +145,14 @@ def build_chronological_splits(
     df_m15: pd.DataFrame,
     stride: int = 15,
     use_wavelet: bool = True,
+    include_institutional: bool = False,
     L: int = config.LOOKBACK_M1,
     H: int = config.HORIZON_BARS,
 ) -> tuple[Samples, Samples, Samples, RobustTrainScaler, pd.DataFrame, pd.DataFrame]:
     """Build strictly chronological Train (70%) / Val (15%) / Test (15%) splits with 360-bar embargo."""
-    feat_df, aux_df = build_mtf_features(df_m1, df_m15, use_wavelet=use_wavelet)
+    feat_df, aux_df = build_mtf_features(
+        df_m1, df_m15, use_wavelet=use_wavelet, include_institutional=include_institutional
+    )
 
     warmup = max(L + 200, 1500)
     n_total = len(df_m1)
@@ -206,6 +209,7 @@ def build_live_sample(
     scaler: RobustTrainScaler,
     origin_pos: int | None = None,
     use_wavelet: bool = True,
+    include_institutional: bool = False,
     L: int = config.LOOKBACK_M1,
 ) -> tuple[Samples, pd.DataFrame, pd.DataFrame]:
     """Build a single-row Samples object at origin_pos (defaults to latest closed 1M bar)."""
@@ -215,7 +219,9 @@ def build_live_sample(
     from .fetcher.fetch_adapter import resample_m1_to_m15
 
     s_m15 = resample_m1_to_m15(s_m1)
-    feat_df, aux_df = build_mtf_features(s_m1, s_m15, use_wavelet=use_wavelet)
+    feat_df, aux_df = build_mtf_features(
+        s_m1, s_m15, use_wavelet=use_wavelet, include_institutional=include_institutional
+    )
     X_scaled = scaler.transform(feat_df)
     C_arr = feat_df[STATIC_CTX_COLS].to_numpy(dtype=np.float32)
 

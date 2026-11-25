@@ -68,10 +68,12 @@ def train_all(
     epochs: int = 35,
     seeds=(11,),
     use_wavelet: bool = True,
+    include_institutional: bool = True,
     progress_cb: Optional[Callable[[str], None]] = None,
     tracker=None,
 ) -> dict:
-    """Train all 7 models + baselines chronologically, fit ensemble weights on VAL, evaluate strictly on TEST."""
+    """Train all 7 models + baselines chronologically into a staging dir, then swap atomically (zero live downtime)."""
+    import shutil
     from .train_monitor import TrainTracker
 
     chosen = models_to_train or list(CORE_MODEL_CLASSES.keys())
@@ -91,11 +93,17 @@ def train_all(
     log(f"Calendar detected: {cal_info['total_bars']:,} bars, {cal_info['total_gaps_ge_45m']} gaps (>=45m)")
 
     tr, va, te, scaler, feat_df, aux_df = build_chronological_splits(
-        df_m1, df_m15, stride=stride, use_wavelet=use_wavelet
+        df_m1, df_m15, stride=stride, use_wavelet=use_wavelet, include_institutional=include_institutional
     )
-    tracker.finish_stage("features_splits", f"Train={len(tr)}, Val={len(va)}, Test={len(te)}, Features={tr.X.shape[2]}")
+    tracker.finish_stage(
+        "features_splits",
+        f"Train={len(tr)}, Val={len(va)}, Test={len(te)}, Features={tr.X.shape[2]} (inst={include_institutional})",
+    )
 
-    model_dir = config.MODELS_DIR / symbol.lower()
+    live_model_dir = config.MODELS_DIR / symbol.lower()
+    model_dir = config.MODELS_DIR / f"{symbol.lower()}_staging"
+    if model_dir.exists():
+        shutil.rmtree(model_dir, ignore_errors=True)
     model_dir.mkdir(parents=True, exist_ok=True)
     scaler.save(model_dir / "scaler.joblib")
 
@@ -183,6 +191,8 @@ def train_all(
         "models_trained": list(va_preds.keys()) + ["direction_meta", "path_simulator"],
         "weights": weights,
         "use_wavelet": use_wavelet,
+        "include_institutional": bool(include_institutional),
+        "n_features": int(tr.X.shape[2]),
         "stride": stride,
         "epochs": epochs,
         "train_samples": int(len(tr)),
@@ -190,6 +200,16 @@ def train_all(
         "test_samples": int(len(te)),
     }
     (model_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    # Atomically swap staging -> live models folder (with automatic backup of previous models)
+    backup_dir = config.ROOT_DIR / "backups" / f"prev_models_{symbol.lower()}"
+    backup_dir.parent.mkdir(parents=True, exist_ok=True)
+    if live_model_dir.exists():
+        if backup_dir.exists():
+            shutil.rmtree(backup_dir, ignore_errors=True)
+        shutil.copytree(live_model_dir, backup_dir)
+        shutil.rmtree(live_model_dir, ignore_errors=True)
+    model_dir.rename(live_model_dir)
 
     data_meta = json.loads(meta_path(symbol).read_text(encoding="utf-8")) if meta_path(symbol).exists() else {}
     report = save_metrics_report(eval_results, ens_res, hl_eval, dmeta.val_info, weights, data_meta)
@@ -218,7 +238,11 @@ def generate_forecast(
     weights = load_weights()
 
     S_live, feat_df, aux_df = build_live_sample(
-        df_m1, df_m15, scaler, use_wavelet=bool(manifest.get("use_wavelet", True))
+        df_m1,
+        df_m15,
+        scaler,
+        use_wavelet=bool(manifest.get("use_wavelet", True)),
+        include_institutional=bool(manifest.get("include_institutional", False)),
     )
     origin_ts = pd.Timestamp(df_m1.index[-1])
     P0 = float(S_live.P0[0])
