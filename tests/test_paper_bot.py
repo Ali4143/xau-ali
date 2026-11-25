@@ -10,8 +10,9 @@ import pandas as pd
 import xau_mtf.paper_bot as pb
 
 
-def _make_bars(prices: list[float], start: str = "2026-11-25 14:00:00+00:00") -> pd.DataFrame:
-    idx = pd.date_range(start, periods=len(prices), freq="1min", tz="UTC")
+def _make_bars(prices: list[float]) -> pd.DataFrame:
+    end = pd.Timestamp.now(tz="UTC").floor("min")
+    idx = pd.date_range(end=end, periods=len(prices), freq="1min", tz="UTC")
     p = np.asarray(prices, dtype=float)
     return pd.DataFrame(
         {"open": p, "high": p + 0.6, "low": p - 0.6, "close": p, "volume": np.full(len(p), 50.0)},

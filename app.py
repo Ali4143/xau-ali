@@ -472,6 +472,29 @@ def _render_live_terminal_section() -> None:
         else None
     )
 
+    # Auto-Lock fresh 6H Orange Forecast when a new live session opens & previous 6H window expired (24/5 hands-free!)
+    if not IS_CLOUD and auto_live_fetch and not df_m1_l.empty:
+        last_bar_utc = pd.Timestamp(df_m1_l.index[-1])
+        if last_bar_utc.tzinfo is None:
+            last_bar_utc = last_bar_utc.tz_localize("UTC")
+        bar_age_min = (datetime.now(timezone.utc) - last_bar_utc.to_pydatetime()).total_seconds() / 60.0
+        fc_expired = True
+        if active_fc_l and active_fc_l.get("times"):
+            fc_end_utc = pd.Timestamp(active_fc_l["times"][-1])
+            if fc_end_utc.tzinfo is None:
+                fc_end_utc = fc_end_utc.tz_localize("UTC")
+            fc_expired = last_bar_utc >= fc_end_utc
+        # Market is actively open (fresh <= 4m bar) & old 6H window ended -> auto-lock fresh 6H forecast!
+        if bar_age_min <= 4.0 and fc_expired:
+            try:
+                run_forecast_isolated(symbol=symbol, mode="auto_lock", forecaster=forecaster_choice)
+                all_fcs_l = [r for r in load_forecast_log(limit=25) if r.get("symbol") == symbol.upper()]
+                locked_fcs_l = [r for r in all_fcs_l if not str(r.get("mode", "")).startswith("live")]
+                active_fc_l = locked_fcs_l[-1] if locked_fcs_l else (all_fcs_l[-1] if all_fcs_l else None)
+                live_refresh_fc_l = None
+            except Exception:
+                pass
+
     # White Dashed Taaza refreshes ONLY on completed 15m candle close
     taaza_st = {"due": False, "reason": ""}
     if active_fc_l and not df_m1_l.empty:

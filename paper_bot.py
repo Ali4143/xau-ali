@@ -454,9 +454,13 @@ def tick_paper_bot(
         state["daily_paused_reason"] = f"Daily drawdown limit hit (-{day_dd_pct:.2f}% >= -{state['daily_dd_limit_pct']:.1f}%)"
         state["last_event"] = f"⛔ Auto-Paused: {state['daily_paused_reason']}"
 
-    # ── 3. EVALUATE NEW ENTRIES (ONLY WHEN RUNNING & NOT IN HIGH-VOL SHOCK) ───
+    # ── 3. EVALUATE NEW ENTRIES (ONLY WHEN RUNNING, MARKET OPEN & NOT HIGH-VOL SHOCK) ─
     reg_code = int((inst_sum or {}).get("regime_state", 0))
-    if state.get("running") and reg_code != 2:
+    bar_age_min = (_now_utc() - t_now.to_pydatetime()).total_seconds() / 60.0
+    market_is_live = bar_age_min <= 6.0
+    if state.get("running") and not market_is_live:
+        state["last_event"] = f"⏸ Market closed / rollover (last bar {int(bar_age_min)}m ago) — auto-resumes on open."
+    if state.get("running") and market_is_live and reg_code != 2:
         open_tracks = {t["track"] for t in state.get("open_trades", [])}
         min_conf = float(state.get("min_confidence", 60.0))
 
