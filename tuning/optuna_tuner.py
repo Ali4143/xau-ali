@@ -4,15 +4,11 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
-import optuna
-
 from .. import config
 from ..dataset import Samples
 from ..models.common import pinball_loss_np
 from ..models.lgb_quantile import LGBQuantileForecaster
 from ..models.tcn import TCNForecaster
-
-optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
 def load_best_params() -> dict:
@@ -38,9 +34,12 @@ def save_best_params(kind: str, params: dict, val_pinball: float, n_trials: int)
 
 def tune_lightgbm(tr: Samples, va: Samples, n_trials: int = 12, progress_cb=None) -> dict:
     """Tune LightGBM quantile regressors on validation pinball loss using fast representative knots."""
+    import optuna
+
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
     fast_steps = (12, 60, 180, 360)
 
-    def objective(trial: optuna.Trial) -> float:
+    def objective(trial) -> float:
         p = {
             "num_leaves": trial.suggest_int("num_leaves", 15, 63),
             "learning_rate": trial.suggest_float("learning_rate", 0.015, 0.08, log=True),
@@ -66,8 +65,11 @@ def tune_lightgbm(tr: Samples, va: Samples, n_trials: int = 12, progress_cb=None
 
 def tune_tcn(tr: Samples, va: Samples, n_trials: int = 6, epochs: int = 20, progress_cb=None) -> dict:
     """Tune Causal Dilated TCN on validation pinball loss with MedianPruner."""
+    import optuna
 
-    def objective(trial: optuna.Trial) -> float:
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+    def objective(trial) -> float:
         hp = {
             "filters": trial.suggest_categorical("filters", [24, 32, 48]),
             "kernel": trial.suggest_categorical("kernel", [2, 3]),
