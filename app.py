@@ -331,12 +331,47 @@ if not IS_CLOUD:
             st.sidebar.warning(msg_s)
 
 st.sidebar.subheader("3️⃣ Chart, Forecaster & Timezone")
-forecaster_choice = st.sidebar.selectbox(
+
+
+def _resolve_auto_best_forecaster() -> tuple[str, str]:
+    """Pick #1 best forecaster automatically from latest metrics_v2.json (Ensemble vs individual models)."""
+    v2_p = config.REPORTS_DIR / "v2" / "metrics_v2.json"
+    if v2_p.exists():
+        try:
+            rep = json.loads(v2_p.read_text(encoding="utf-8"))
+            cands = [
+                r
+                for r in (rep.get("models") or [])
+                if str(r.get("model", "")).lower() in ("ensemble", "tft", "lightgbm", "tcn", "wavelet_bilstm", "timemixer")
+                and r.get("MAE_USD") is not None
+            ]
+            if cands:
+                best = min(cands, key=lambda r: float(r["MAE_USD"]))
+                m_key = str(best["model"]).lower()
+                da3 = best.get("DA_3h_pct")
+                da_txt = f"{float(da3):.1f}% 3h DA" if da3 is not None else f"MAE ${float(best['MAE_USD']):.2f}"
+                return m_key, f"Auto Best → {m_key.upper()} ({da_txt})"
+        except Exception:
+            pass
+    return "tft", "Auto Best → TFT (Default)"
+
+
+_auto_best_key, _auto_best_lbl = _resolve_auto_best_forecaster()
+_fc_sel = st.sidebar.selectbox(
     "Active Forecaster Engine",
-    ["tft", "ensemble"],
+    ["auto", "tft", "ensemble", "lightgbm", "tcn", "wavelet_bilstm"],
     index=0,
-    format_func=lambda k: "TFT (1-Year Best · 56.5% 3h DA)" if k == "tft" else "Ensemble (v2 Weights)",
+    format_func=lambda k: (
+        f"🏆 {_auto_best_lbl}"
+        if k == "auto"
+        else (
+            "TFT (Neural Transformer)"
+            if k == "tft"
+            else ("Ensemble (Multi-Model Blend)" if k == "ensemble" else k.upper())
+        )
+    ),
 )
+forecaster_choice = _auto_best_key if _fc_sel == "auto" else _fc_sel
 display_tz = st.sidebar.selectbox(
     "Chart Timezone (Default: UTC)",
     ["UTC", "Asia/Karachi", "America/New_York"],
