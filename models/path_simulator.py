@@ -78,12 +78,27 @@ class _SimState:
 
 
 def _pick_best_path(lr: np.ndarray, tgt: np.ndarray) -> int:
+    """Pick a representative (typical-amplitude) real Monte Carlo path.
+
+    Avoids selecting the abnormally flat 1-in-300 outlier closest to the smooth
+    median; instead selects the real simulated path whose High/Low swings match
+    the 300-path median Target High & Target Low while staying aligned with
+    `tgt` (TFT/Ensemble q50) at the 1h mark and end of horizon.
+    """
     H = lr.shape[1]
     fh = min(H, config.H_1H)
-    w = np.ones(H, dtype=np.float64)
-    w[:fh] = 3.0
-    d = np.abs(lr - tgt[None, :])
-    score = (d * w[None, :]).sum(axis=1) / w.sum() + 0.5 * d.max(axis=1)
+    hi = lr.max(axis=1)
+    lo = lr.min(axis=1)
+    med_hi = float(np.median(hi))
+    med_lo = float(np.median(lo))
+    # 1) Match typical candle-scale swing amplitude (median Target High & Target Low)
+    amp_err = np.abs(hi - med_hi) + np.abs(lo - med_lo)
+    # 2) Stay aligned with the forecaster's endpoint & first-hour drift
+    end_err = np.abs(lr[:, -1] - tgt[-1])
+    h1_err = np.abs(lr[:, fh - 1] - tgt[fh - 1])
+    # 3) Mild preference for tracking the smooth trajectory without killing swings
+    mean_err = np.abs(lr - tgt[None, :]).mean(axis=1)
+    score = 2.0 * amp_err + 1.5 * end_err + 1.0 * h1_err + 0.35 * mean_err
     return int(np.argmin(score))
 
 
