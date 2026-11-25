@@ -48,11 +48,14 @@ def fit_ensemble_weights_v2(
     for name, pred in val_preds.items():
         mae_v = _val_mae_usd(pred, y_val, m_val, atr15_val)
         pb_v = pinball_loss_np(y_val, m_val, pred)
-        excluded = mae_v >= nc_mae
+        # Pass if model beats NoChange on val MAE OR beats NoChange on val pinball within 0.5% MAE tolerance
+        passes = (mae_v < nc_mae) or (pb_v < nc_pb and mae_v <= nc_mae * 1.005)
+        excluded = not passes
         diag["candidates"][name] = {
             "val_mae_usd": round(mae_v, 4),
             "val_pinball": round(pb_v, 6),
-            "beats_nochange_val_mae": not excluded,
+            "beats_nochange_val_mae": bool(mae_v < nc_mae),
+            "beats_nochange_val_pinball": bool(pb_v < nc_pb),
             "excluded": excluded,
         }
         if excluded:
@@ -63,10 +66,10 @@ def fit_ensemble_weights_v2(
 
     weights = {n: 0.0 for n in val_preds}
     if not eligible:
-        # Fallback: pick single lowest validation pinball model if none beat NoChange on val MAE
+        # Fallback: pick single lowest validation pinball model if none pass
         best_single = min(val_preds.keys(), key=lambda k: diag["candidates"][k]["val_pinball"])
         weights[best_single] = 1.0
-        diag["note"] = f"No model beat NoChange on validation MAE; fallback to lowest val pinball ({best_single})"
+        diag["note"] = f"No model passed NoChange gate on val; fallback to lowest val pinball ({best_single})"
         return weights, diag
 
     if len(eligible) == 1:
@@ -84,6 +87,26 @@ def fit_ensemble_weights_v2(
     bounds = [(0.0, 1.0) for _ in eligible]
     res = minimize(obj, init_w, method="SLSQP", bounds=bounds, constraints=cons, options={"maxiter": 150})
     w_opt = np.clip(res.x if res.success else init_w, 0.0, 1.0)
+    w_opt = w_opt / max(w_opt.sum(), 1e-9)
+
+    # KSE100-proven Anti-Flatness Rule: cap LightGBM at 30% when >=2 passing neural models exist
+    shrink = 0.15
+    neural_idx = [i for i, n in enumerate(eligible) if n != "lightgbm"]
+    if "lightgbm" in eligible and len(neural_idx) >= 2:
+        l_idx = eligible.index("lightgbm")
+        if w_opt[l_idx] > 0.35:
+            npb = np.array([diag["candidates"][eligible[i]]["val_pinball"] for i in neural_idx], dtype=np.float64)
+            z = (npb - npb.min()) / max(1e-6, float(npb.std()))
+            nw = np.exp(-2.0 * z)
+            nw = (1.0 - shrink) * (nw / nw.sum()) + shrink / len(neural_idx)
+            w_opt = np.zeros_like(w_opt)
+            w_opt[l_idx] = 0.30
+            for i, val in zip(neural_idx, nw):
+                w_opt[i] = 0.70 * val
+            diag["rule_applied"] = "KSE100 30% LightGBM cap + 70% passing neural softmax"
+
+    # 15% shrinkage across ALL passing models so every passing model contributes its vote
+    w_opt = (1.0 - shrink) * w_opt + shrink * (1.0 / len(eligible))
     w_opt = w_opt / max(w_opt.sum(), 1e-9)
 
     for n, v in zip(eligible, w_opt):
