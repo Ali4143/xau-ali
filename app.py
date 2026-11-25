@@ -375,7 +375,16 @@ def _render_live_training_monitor() -> None:
                 unsafe_allow_html=True,
             )
         with m_c2:
-            if not is_err and st.button("🛑 Stop Training", key="btn_stop_tr", use_container_width=True):
+            if is_err:
+                if st.button("✖ Dismiss Error", key="btn_dismiss_tr_err", use_container_width=True):
+                    from xau_mtf.train_monitor import STATUS_FILE
+
+                    try:
+                        STATUS_FILE.write_text(json.dumps({"state": "idle"}, indent=2), encoding="utf-8")
+                    except Exception:
+                        pass
+                    st.rerun()
+            elif st.button("🛑 Stop Training", key="btn_stop_tr", use_container_width=True):
                 import os
                 import signal
 

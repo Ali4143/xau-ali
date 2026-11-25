@@ -85,6 +85,10 @@ def tune_tcn(tr: Samples, va: Samples, n_trials: int = 6, epochs: int = 20, prog
         loss = pinball_loss_np(va.y, va.m, pred)
         if progress_cb:
             progress_cb(f"Optuna TCN trial {trial.number + 1}/{n_trials}: val_pinball={loss:.5f}")
+        import gc
+
+        del mdl, pred
+        gc.collect()
         return loss
 
     study = optuna.create_study(
