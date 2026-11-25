@@ -377,22 +377,21 @@ def _render_live_training_monitor() -> None:
         with m_c2:
             if is_err:
                 if st.button("✖ Dismiss Error", key="btn_dismiss_tr_err", use_container_width=True):
-                    from xau_mtf.train_monitor import STATUS_FILE
+                    from xau_mtf.train_monitor import clear_training_status
 
-                    try:
-                        STATUS_FILE.write_text(json.dumps({"state": "idle"}, indent=2), encoding="utf-8")
-                    except Exception:
-                        pass
+                    clear_training_status("Dismissed by user — best completed checkpoints preserved.")
                     st.rerun()
             elif st.button("🛑 Stop Training", key="btn_stop_tr", use_container_width=True):
                 import os
                 import signal
+                from xau_mtf.train_monitor import clear_training_status
 
                 try:
                     os.kill(int(st_tr["pid"]), signal.SIGTERM)
                 except Exception:
                     pass
-                st.warning("Stop signal sent.")
+                clear_training_status("Stopped by user — best completed checkpoints saved!")
+                st.rerun()
 
         st.progress(min(1.0, max(0.0, pct / 100.0)), text=f"Overall Progress: {pct:.1f}%")
         k1, k2, k3, k4, k5 = st.columns(5)

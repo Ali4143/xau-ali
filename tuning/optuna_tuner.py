@@ -33,11 +33,13 @@ def save_best_params(kind: str, params: dict, val_pinball: float, n_trials: int)
 
 
 def tune_lightgbm(tr: Samples, va: Samples, n_trials: int = 12, progress_cb=None) -> dict:
-    """Tune LightGBM quantile regressors on validation pinball loss using fast representative knots."""
+    """Tune LightGBM quantile regressors on validation pinball loss; auto-saves best after every trial."""
+    import gc
     import optuna
 
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     fast_steps = (12, 60, 180, 360)
+    best_state = {"loss": float("inf"), "params": None, "done": 0}
 
     def objective(trial) -> float:
         p = {
@@ -51,23 +53,39 @@ def tune_lightgbm(tr: Samples, va: Samples, n_trials: int = 12, progress_cb=None
         }
         mdl = LGBQuantileForecaster(steps=fast_steps, params=p).fit(tr, va)
         pred = mdl.predict(va)
-        loss = pinball_loss_np(va.y, va.m, pred)
+        loss = float(pinball_loss_np(va.y, va.m, pred))
+        best_state["done"] += 1
+        if loss < best_state["loss"]:
+            best_state["loss"] = loss
+            best_state["params"] = dict(trial.params, n_estimators=600)
+            save_best_params("lightgbm", best_state["params"], loss, best_state["done"])
         if progress_cb:
-            progress_cb(f"Optuna LightGBM trial {trial.number + 1}/{n_trials}: val_pinball={loss:.5f}")
+            progress_cb(f"Optuna LightGBM trial {trial.number + 1}/{n_trials}: val_pinball={loss:.5f} (best={best_state['loss']:.5f} saved)")
+        del mdl, pred
+        gc.collect()
         return loss
 
     study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=n_trials)
-    best_p = dict(study.best_params, n_estimators=600)
-    save_best_params("lightgbm", best_p, study.best_value, n_trials)
-    return {"model": "lightgbm", "best_val_pinball": study.best_value, "best_params": best_p}
+    try:
+        study.optimize(objective, n_trials=n_trials)
+    except (KeyboardInterrupt, MemoryError, RuntimeError, Exception) as exc:
+        if best_state["params"] is not None:
+            if progress_cb:
+                progress_cb(f"Optuna LightGBM stopped early ({exc}); best trial ({best_state['loss']:.5f}) ALREADY saved!")
+            return {"model": "lightgbm", "best_val_pinball": best_state["loss"], "best_params": best_state["params"], "partial": True}
+        raise
+    best_p = best_state["params"] or dict(study.best_params, n_estimators=600)
+    save_best_params("lightgbm", best_p, best_state["loss"], n_trials)
+    return {"model": "lightgbm", "best_val_pinball": best_state["loss"], "best_params": best_p}
 
 
 def tune_tcn(tr: Samples, va: Samples, n_trials: int = 6, epochs: int = 20, progress_cb=None) -> dict:
-    """Tune Causal Dilated TCN on validation pinball loss with MedianPruner."""
+    """Tune Causal Dilated TCN on validation pinball loss; auto-saves best after every trial."""
+    import gc
     import optuna
 
     optuna.logging.set_verbosity(optuna.logging.WARNING)
+    best_state = {"loss": float("inf"), "params": None, "done": 0}
 
     def objective(trial) -> float:
         hp = {
@@ -82,11 +100,14 @@ def tune_tcn(tr: Samples, va: Samples, n_trials: int = 6, epochs: int = 20, prog
         }
         mdl = TCNForecaster(hp=hp, seeds=(11,), epochs=epochs).fit(tr, va, workdir=config.ARTIFACTS_DIR / "optuna_tmp")
         pred = mdl.predict(va)
-        loss = pinball_loss_np(va.y, va.m, pred)
+        loss = float(pinball_loss_np(va.y, va.m, pred))
+        best_state["done"] += 1
+        if loss < best_state["loss"]:
+            best_state["loss"] = loss
+            best_state["params"] = dict(trial.params, batch=64)
+            save_best_params("tcn", best_state["params"], loss, best_state["done"])
         if progress_cb:
-            progress_cb(f"Optuna TCN trial {trial.number + 1}/{n_trials}: val_pinball={loss:.5f}")
-        import gc
-
+            progress_cb(f"Optuna TCN trial {trial.number + 1}/{n_trials}: val_pinball={loss:.5f} (best={best_state['loss']:.5f} saved)")
         del mdl, pred
         gc.collect()
         return loss
@@ -96,7 +117,14 @@ def tune_tcn(tr: Samples, va: Samples, n_trials: int = 6, epochs: int = 20, prog
         sampler=optuna.samplers.TPESampler(seed=42),
         pruner=optuna.pruners.MedianPruner(n_startup_trials=2),
     )
-    study.optimize(objective, n_trials=n_trials)
-    best_hp = dict(study.best_params, batch=64)
-    save_best_params("tcn", best_hp, study.best_value, n_trials)
-    return {"model": "tcn", "best_val_pinball": study.best_value, "best_params": best_hp}
+    try:
+        study.optimize(objective, n_trials=n_trials)
+    except (KeyboardInterrupt, MemoryError, RuntimeError, Exception) as exc:
+        if best_state["params"] is not None:
+            if progress_cb:
+                progress_cb(f"Optuna TCN stopped early ({exc}); best trial ({best_state['loss']:.5f}) ALREADY saved!")
+            return {"model": "tcn", "best_val_pinball": best_state["loss"], "best_params": best_state["params"], "partial": True}
+        raise
+    best_hp = best_state["params"] or dict(study.best_params, batch=64)
+    save_best_params("tcn", best_hp, best_state["loss"], n_trials)
+    return {"model": "tcn", "best_val_pinball": best_state["loss"], "best_params": best_hp}

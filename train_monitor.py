@@ -137,10 +137,71 @@ class TrainTracker:
         self.log(f"❌ FAILED: {err}")
 
 
+def _pid_is_alive(pid: int | None) -> bool:
+    if not pid or int(pid) <= 0:
+        return False
+    pid = int(pid)
+    if os.name == "nt":
+        try:
+            import ctypes
+
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            STILL_ACTIVE = 259
+            handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if not handle:
+                return False
+            try:
+                exit_code = ctypes.c_ulong()
+                ok = ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+                return bool(ok and exit_code.value == STILL_ACTIVE)
+            finally:
+                ctypes.windll.kernel32.CloseHandle(handle)
+        except Exception:
+            return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except Exception:
+        return False
+
+
+def clear_training_status(note: str = "Cleared — best completed checkpoints preserved") -> None:
+    payload = {
+        "state": "idle",
+        "step_label": note,
+        "updated_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        STATUS_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
 def read_training_status() -> dict | None:
     if not STATUS_FILE.exists():
         return None
     try:
-        return json.loads(STATUS_FILE.read_text(encoding="utf-8"))
+        st = json.loads(STATUS_FILE.read_text(encoding="utf-8"))
     except Exception:
         return None
+    if not isinstance(st, dict):
+        return None
+
+    state = st.get("state")
+    # Auto-heal: if process was stopped, crashed, or PC restarted, clear stale running state cleanly
+    if state == "running" and not _pid_is_alive(st.get("pid")):
+        clear_training_status("Auto-recovered after stop/restart — best completed checkpoints saved.")
+        return {"state": "idle"}
+
+    # Auto-heal stale error banners older than 2 minutes so UI never stays permanently stuck
+    if state == "error":
+        upd = st.get("updated_utc")
+        if upd:
+            try:
+                age_sec = (datetime.now(timezone.utc) - datetime.fromisoformat(upd)).total_seconds()
+                if age_sec > 120:
+                    clear_training_status("Auto-cleared previous error — best completed checkpoints preserved.")
+                    return {"state": "idle"}
+            except Exception:
+                pass
+    return st
