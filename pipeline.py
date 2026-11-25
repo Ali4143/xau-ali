@@ -204,6 +204,7 @@ def generate_forecast(
     mode: str = "manual",
     n_paths: int = config.SIM_PATHS,
     log_record: bool = True,
+    forecaster: str = "tft",
 ) -> dict:
     """Generate a fixed, non-repainting 6-hour (up to 360 trading bars) forecast from latest closed 1M bar."""
     model_dir = config.MODELS_DIR / symbol.lower()
@@ -242,7 +243,12 @@ def generate_forecast(
         member_preds_norm[m_name] = p_norm
         member_q50_price[m_name] = (P0 + p_norm[0, :H_eff, 1] * atr15).round(2).tolist()
 
-    ens_norm = blend_predictions(member_preds_norm, weights)  # [1, H, 3]
+    if forecaster in member_preds_norm:
+        ens_norm = member_preds_norm[forecaster]
+        used_forecaster = forecaster
+    else:
+        ens_norm = blend_predictions(member_preds_norm, weights)  # [1, H, 3]
+        used_forecaster = "ensemble"
 
     # DirectionMeta
     dmeta_live = {}
@@ -282,6 +288,7 @@ def generate_forecast(
         "id": str(uuid.uuid4())[:8],
         "symbol": symbol.upper(),
         "mode": mode,
+        "forecaster": used_forecaster,
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "origin_utc": origin_ts.isoformat(),
         "P0": round(P0, 2),
@@ -473,7 +480,7 @@ def generate_taaza_if_due(
     return rec, chk
 
 
-def run_forecast_isolated(symbol: str = config.DEFAULT_SYMBOL, mode: str = "manual") -> dict:
+def run_forecast_isolated(symbol: str = config.DEFAULT_SYMBOL, mode: str = "manual", forecaster: str = "tft") -> dict:
     """Run generate_forecast in a clean subprocess so LightGBM loads before Streamlit/scipy DLLs on Windows."""
     import subprocess
     import sys
@@ -488,6 +495,8 @@ def run_forecast_isolated(symbol: str = config.DEFAULT_SYMBOL, mode: str = "manu
         str(symbol),
         "--mode",
         str(mode),
+        "--forecaster",
+        str(forecaster),
     ]
     res = subprocess.run(cmd, capture_output=True, text=True, check=False, cwd=str(config.ROOT.parent))
     if res.returncode != 0:
@@ -506,12 +515,13 @@ def run_taaza_if_due_isolated(
     df_m1: pd.DataFrame,
     active_fc: Optional[dict],
     latest_taaza: Optional[dict] = None,
+    forecaster: str = "tft",
 ) -> tuple[Optional[dict], dict]:
     """Check taaza_update_due in-process (pure numpy/pandas), and run inference in clean subprocess if due."""
     chk = taaza_update_due(df_m1, active_fc, latest_taaza)
     if not chk.get("due"):
         return latest_taaza, chk
-    rec = run_forecast_isolated(symbol=symbol, mode="live_refresh")
+    rec = run_forecast_isolated(symbol=symbol, mode="live_refresh", forecaster=forecaster)
     rem = int(chk.get("horizon_bars", config.HORIZON_BARS))
     if rem < len(rec["times"]):
         rec["times"] = rec["times"][:rem]
@@ -626,11 +636,12 @@ if __name__ == "__main__":
     ap.add_argument("--action", default="forecast", choices=["forecast", "train", "optuna"])
     ap.add_argument("--symbol", default=config.DEFAULT_SYMBOL)
     ap.add_argument("--mode", default="manual")
+    ap.add_argument("--forecaster", default="tft")
     ap.add_argument("--stride", type=int, default=15)
     ap.add_argument("--epochs", type=int, default=20)
     args = ap.parse_args()
     if args.action == "forecast":
-        out = generate_forecast(symbol=args.symbol, mode=args.mode, log_record=True)
+        out = generate_forecast(symbol=args.symbol, mode=args.mode, log_record=True, forecaster=args.forecaster)
         print(json.dumps({"ok": True, "id": out["id"], "P0": out["P0"]}))
     elif args.action == "train":
         from .eval_v2 import run_v2_evaluation

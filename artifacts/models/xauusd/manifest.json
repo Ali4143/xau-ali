@@ -1,6 +1,6 @@
 {
   "symbol": "XAUUSD",
-  "trained_utc": "2026-11-25T16:21:08.679640+00:00",
+  "trained_utc": "2026-11-25T19:24:30.049700+00:00",
   "models_trained": [
     "lightgbm",
     "tcn",
@@ -11,16 +11,16 @@
     "path_simulator"
   ],
   "weights": {
-    "lightgbm": 0.1779,
-    "tcn": 0.0,
-    "tft": 0.1268,
-    "wavelet_bilstm": 0.6035,
-    "timemixer": 0.0918
+    "lightgbm": 0.5649,
+    "tcn": 0.4351,
+    "tft": 0.0,
+    "wavelet_bilstm": 0.0,
+    "timemixer": 0.0
   },
   "use_wavelet": true,
   "stride": 15,
-  "epochs": 12,
-  "train_samples": 2627,
-  "val_samples": 544,
-  "test_samples": 497
+  "epochs": 20,
+  "train_samples": 16268,
+  "val_samples": 3468,
+  "test_samples": 3421
 }

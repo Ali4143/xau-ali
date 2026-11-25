@@ -278,9 +278,10 @@ def build_mtf_forecast_chart(
             )
             ys += [float(min(y_lv)), float(max(y_lv))]
 
-        # Target High & Target Low Lines (Exact KSE-100 Dash-Dot Styling)
-        th = active_fc.get("target_high")
-        tl = active_fc.get("target_low")
+        # Target High & Target Low Lines (use live Taaza's fresh targets when Taaza is active, else Locked targets)
+        tgt_src = live_refresh_fc if (live_refresh_fc and live_refresh_fc.get("target_high")) else active_fc
+        th = tgt_src.get("target_high")
+        tl = tgt_src.get("target_low")
         if th is not None:
             ys.append(float(th))
             fig.add_trace(

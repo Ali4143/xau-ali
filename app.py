@@ -330,7 +330,13 @@ if not IS_CLOUD:
         else:
             st.sidebar.warning(msg_s)
 
-st.sidebar.subheader("3️⃣ Chart & Timezone Options")
+st.sidebar.subheader("3️⃣ Chart, Forecaster & Timezone")
+forecaster_choice = st.sidebar.selectbox(
+    "Active Forecaster Engine",
+    ["tft", "ensemble"],
+    index=0,
+    format_func=lambda k: "TFT (1-Year Best · 56.5% 3h DA)" if k == "tft" else "Ensemble (v2 Weights)",
+)
 display_tz = st.sidebar.selectbox(
     "Chart Timezone (Default: UTC)",
     ["UTC", "Asia/Karachi", "America/New_York"],
@@ -416,11 +422,13 @@ def _render_live_terminal_section() -> None:
         else None
     )
 
-    # White Dashed Taaza refreshes ONLY on completed 15m candle close (or >1.5x ATR move)
+    # White Dashed Taaza refreshes ONLY on completed 15m candle close
     taaza_st = {"due": False, "reason": ""}
     if active_fc_l and not df_m1_l.empty:
         try:
-            live_refresh_fc_l, taaza_st = run_taaza_if_due_isolated(symbol, df_m1_l, active_fc_l, live_refresh_fc_l)
+            live_refresh_fc_l, taaza_st = run_taaza_if_due_isolated(
+                symbol, df_m1_l, active_fc_l, live_refresh_fc_l, forecaster=forecaster_choice
+            )
         except Exception as _tz_err:
             taaza_st = {"due": False, "reason": str(_tz_err)}
 
@@ -460,16 +468,16 @@ def _render_live_terminal_section() -> None:
         with b_col1:
             if st.button("🔮 Lock 6H", type="primary", use_container_width=True):
                 try:
-                    with st.spinner("Locking new 6H forecast..."):
-                        run_forecast_isolated(symbol=symbol, mode="manual")
+                    with st.spinner(f"Locking new 6H forecast ({forecaster_choice.upper()})..."):
+                        run_forecast_isolated(symbol=symbol, mode="manual", forecaster=forecaster_choice)
                     st.rerun()
                 except Exception as e:
                     st.error(f"Forecast failed: {e}")
         with b_col2:
             if st.button("🔄 Taaza", use_container_width=True):
                 try:
-                    with st.spinner("Generating white dashed Taaza live forecast..."):
-                        run_forecast_isolated(symbol=symbol, mode="live_refresh")
+                    with st.spinner(f"Generating white dashed Taaza ({forecaster_choice.upper()})..."):
+                        run_forecast_isolated(symbol=symbol, mode="live_refresh", forecaster=forecaster_choice)
                     st.rerun()
                 except Exception as e:
                     st.error(f"Taaza failed: {e}")

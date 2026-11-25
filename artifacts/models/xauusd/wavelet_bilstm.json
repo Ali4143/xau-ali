@@ -20,10 +20,10 @@
   "history": [
     {
       "seed": 11,
-      "epochs_run": 12,
-      "best_epoch": 5,
-      "best_val_loss": 0.6109948754310608
+      "epochs_run": 9,
+      "best_epoch": 1,
+      "best_val_loss": 0.596152126789093
     }
   ],
-  "cpu_only": true
+  "cpu_only": false
 }

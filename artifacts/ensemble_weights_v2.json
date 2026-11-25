@@ -1,55 +1,55 @@
 {
   "weights": {
-    "lightgbm": 0.2059,
-    "tcn": 0.0,
-    "tft": 0.0745,
-    "wavelet_bilstm": 0.7196,
+    "lightgbm": 0.5908,
+    "tcn": 0.4092,
+    "tft": 0.0,
+    "wavelet_bilstm": 0.0,
     "timemixer": 0.0
   },
   "diagnostics": {
-    "nochange_val_mae_usd": 14.2095,
-    "nochange_val_pinball": 0.645812,
+    "nochange_val_mae_usd": 14.919,
+    "nochange_val_pinball": 0.597437,
     "candidates": {
       "lightgbm": {
-        "val_mae_usd": 13.7987,
-        "val_pinball": 0.623387,
+        "val_mae_usd": 14.8508,
+        "val_pinball": 0.590705,
         "beats_nochange_val_mae": true,
         "excluded": false
       },
       "tcn": {
-        "val_mae_usd": 13.6056,
-        "val_pinball": 0.625775,
+        "val_mae_usd": 14.8955,
+        "val_pinball": 0.593189,
         "beats_nochange_val_mae": true,
         "excluded": false
       },
       "tft": {
-        "val_mae_usd": 13.6665,
-        "val_pinball": 0.62517,
-        "beats_nochange_val_mae": true,
-        "excluded": false
+        "val_mae_usd": 14.9572,
+        "val_pinball": 0.594251,
+        "beats_nochange_val_mae": false,
+        "excluded": true
       },
       "wavelet_bilstm": {
-        "val_mae_usd": 13.5181,
-        "val_pinball": 0.611672,
-        "beats_nochange_val_mae": true,
-        "excluded": false
+        "val_mae_usd": 14.9373,
+        "val_pinball": 0.594283,
+        "beats_nochange_val_mae": false,
+        "excluded": true
       },
       "timemixer": {
-        "val_mae_usd": 14.3771,
-        "val_pinball": 0.65934,
+        "val_mae_usd": 15.0117,
+        "val_pinball": 0.60009,
         "beats_nochange_val_mae": false,
         "excluded": true
       }
     },
     "excluded_models": [
+      "tft",
+      "wavelet_bilstm",
       "timemixer"
     ],
     "included_models": [
       "lightgbm",
-      "tcn",
-      "tft",
-      "wavelet_bilstm"
+      "tcn"
     ],
-    "ensemble_val_pinball": 0.610122
+    "ensemble_val_pinball": 0.585117
   }
 }
