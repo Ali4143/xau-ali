@@ -600,23 +600,33 @@ def _render_live_terminal_section() -> None:
         actual_dir = 1 if (p_now - p0_l) > 0.15 else (-1 if (p_now - p0_l) < -0.15 else 0)
 
         rep_models = {str(r.get("model", "")).lower(): r for r in (rep_l or {}).get("models", [])}
+        nc_mae = float((rep_models.get("no_change") or {}).get("MAE_USD") or 0.0)
         mem_map = active_fc_l.get("member_q50") or {}
         pills_html = []
-        best_m_name, best_m_skill, best_m_da = "TFT", 0.0, 50.0
+        best_m_name, best_m_skill, best_m_da = "TFT", -999.0, 50.0
         live_status_by_m: dict[str, tuple[str, float]] = {}
 
-        for m_k in ("tft", "lgb", "tcn", "wavelet_bilstm", "timemixer"):
-            rm = rep_models.get(m_k, {})
-            da3 = rm.get("DA_3h")
-            sk = rm.get("Skill_MAE_pct")
-            da_s = f"{float(da3)*100:.1f}%" if da3 is not None else "N/A"
-            sk_s = f"{float(sk):+.2f}%" if sk is not None else "N/A"
-            if sk is not None and float(sk) > best_m_skill:
-                best_m_skill = float(sk)
+        for m_k in ("tft", "lightgbm", "tcn", "wavelet_bilstm", "timemixer"):
+            rm = rep_models.get(m_k) or (rep_models.get("lgb") if m_k == "lightgbm" else None) or {}
+            da3_raw = rm.get("DA_3h_pct")
+            if da3_raw is None and isinstance(rm.get("DA_3h"), dict):
+                da3_raw = rm["DA_3h"].get("da_pct")
+            elif da3_raw is None and isinstance(rm.get("DA_3h"), (int, float)):
+                da3_raw = float(rm["DA_3h"]) * (100.0 if float(rm["DA_3h"]) <= 1.0 else 1.0)
+            mae_m = rm.get("MAE_USD")
+            sk_val = (
+                (1.0 - float(mae_m) / nc_mae) * 100.0
+                if (mae_m is not None and nc_mae > 0)
+                else rm.get("Skill_MAE_pct")
+            )
+            da_s = f"{float(da3_raw):.1f}%" if da3_raw is not None else "N/A"
+            sk_s = f"{float(sk_val):+.2f}%" if sk_val is not None else "N/A"
+            if sk_val is not None and float(sk_val) > best_m_skill:
+                best_m_skill = float(sk_val)
                 best_m_name = m_k.upper()
-                best_m_da = float(da3) * 100.0 if da3 is not None else 50.0
+                best_m_da = float(da3_raw) if da3_raw is not None else 50.0
 
-            arr = mem_map.get(m_k)
+            arr = mem_map.get(m_k) or (mem_map.get("lgb") if m_k == "lightgbm" else None)
             if arr and cur_idx < len(arr):
                 p_pred = float(arr[cur_idx])
                 err_now = abs(p_pred - p_now)
@@ -636,9 +646,10 @@ def _render_live_terminal_section() -> None:
             is_best = m_k.upper() == best_m_name
             bdr = "1px solid #34D399" if is_best else "1px solid #1E293B"
             bg = "rgba(16,185,129,0.12)" if is_best else "#0D1526"
+            disp_lbl = "LGB" if m_k == "lightgbm" else m_k.upper()
             pills_html.append(
                 f'<span style="background:{bg};border:{bdr};border-radius:6px;padding:3px 8px;font-size:11px;color:#E2E8F0;">'
-                f'<b style="color:{st_col};">{st_ico} {m_k.upper()}</b> '
+                f'<b style="color:{st_col};">{st_ico} {disp_lbl}</b> '
                 f'<span style="color:#94A3B8;">1Y DA:</span><b>{da_s}</b> '
                 f'<span style="color:#94A3B8;">Skill:</span><b>{sk_s}</b> '
                 f'<span style="color:#64748B;">· {err_txt}</span></span>'
