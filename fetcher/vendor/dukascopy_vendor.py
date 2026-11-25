@@ -8,31 +8,20 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import pandas as pd
-import dukascopy_python
-from dukascopy_python.instruments import (
-    INSTRUMENT_FX_METALS_XAU_USD,
-    INSTRUMENT_FX_METALS_XAG_USD,
-    INSTRUMENT_FX_MAJORS_EUR_USD,
-    INSTRUMENT_FX_MAJORS_GBP_USD,
-    INSTRUMENT_FX_MAJORS_USD_JPY,
-    INSTRUMENT_FX_MAJORS_AUD_USD,
-    INSTRUMENT_FX_MAJORS_USD_CAD,
-    INSTRUMENT_FX_MAJORS_USD_CHF,
-    INSTRUMENT_FX_MAJORS_NZD_USD,
-)
 
 VENDOR_SOURCE_NOTE = "Adapted from D:\\python fetcher\\app.py (dukascopy_python OFFER_SIDE_BID)"
 
+# Standard Dukascopy string instrument IDs (no top-level dukascopy_python import required on Streamlit Cloud!)
 INSTRUMENTS = {
-    "XAUUSD": INSTRUMENT_FX_METALS_XAU_USD,
-    "XAGUSD": INSTRUMENT_FX_METALS_XAG_USD,
-    "EURUSD": INSTRUMENT_FX_MAJORS_EUR_USD,
-    "GBPUSD": INSTRUMENT_FX_MAJORS_GBP_USD,
-    "USDJPY": INSTRUMENT_FX_MAJORS_USD_JPY,
-    "AUDUSD": INSTRUMENT_FX_MAJORS_AUD_USD,
-    "USDCAD": INSTRUMENT_FX_MAJORS_USD_CAD,
-    "USDCHF": INSTRUMENT_FX_MAJORS_USD_CHF,
-    "NZDUSD": INSTRUMENT_FX_MAJORS_NZD_USD,
+    "XAUUSD": "XAU/USD",
+    "XAGUSD": "XAG/USD",
+    "EURUSD": "EUR/USD",
+    "GBPUSD": "GBP/USD",
+    "USDJPY": "USD/JPY",
+    "AUDUSD": "AUD/USD",
+    "USDCAD": "USD/CAD",
+    "USDCHF": "USD/CHF",
+    "NZDUSD": "NZD/USD",
     "EURJPY": "EUR/JPY",
     "GBPJPY": "GBP/JPY",
     "EURGBP": "EUR/GBP",
@@ -52,11 +41,13 @@ def resolve_instrument(symbol: str) -> str:
         return f"{sym[:3]}/{sym[3:]}"
     raise ValueError(f"Unsupported symbol {sym}. Pass a 6-letter forex pair (e.g. EURJPY) or one of {list(INSTRUMENTS)}")
 
-INTERVALS = {
-    "1m": dukascopy_python.INTERVAL_MIN_1,
-    "5m": dukascopy_python.INTERVAL_MIN_5,
-    "15m": dukascopy_python.INTERVAL_MIN_15,
-}
+
+def _dukascopy_interval(dukascopy_python, key: str):
+    return {
+        "1m": dukascopy_python.INTERVAL_MIN_1,
+        "5m": dukascopy_python.INTERVAL_MIN_5,
+        "15m": dukascopy_python.INTERVAL_MIN_15,
+    }[key]
 
 
 def clean_ohlcv(df: Optional[pd.DataFrame]) -> pd.DataFrame:
@@ -108,8 +99,14 @@ def fetch_dukascopy_chunked(
     progress_cb=None,
 ) -> pd.DataFrame:
     """Fetch Dukascopy historical bars in chunks to avoid timeout/memory spikes."""
+    try:
+        import dukascopy_python
+    except Exception as e:
+        print(f"[dukascopy_vendor] dukascopy_python unavailable: {e}")
+        return clean_ohlcv(None)
+
     inst = resolve_instrument(symbol)
-    interval = INTERVALS[interval_key]
+    interval = _dukascopy_interval(dukascopy_python, interval_key)
 
     cur = start_dt.replace(tzinfo=None)
     end = end_dt.replace(tzinfo=None)
