@@ -798,6 +798,33 @@ def _render_live_terminal_section() -> None:
                 unsafe_allow_html=True,
             )
 
+    # 🤖 Auto-Tick Paper Trading Bot every 60s (manages open trades + opens new trades when RUNNING)
+    from xau_mtf.paper_bot import load_bot_state, tick_paper_bot
+
+    if not df_m1_l.empty and not IS_CLOUD:
+        bot_state_l = tick_paper_bot(df_m1_l, active_fc_l, live_refresh_fc_l, inst_sum)
+    else:
+        bot_state_l = load_bot_state()
+
+    if bot_state_l.get("running") or bot_state_l.get("open_trades"):
+        b_run = bool(bot_state_l.get("running"))
+        b_bal = float(bot_state_l.get("balance", 5000.0))
+        b_eq = float(bot_state_l.get("equity", b_bal))
+        b_fl = b_eq - b_bal
+        b_open = bot_state_l.get("open_trades") or []
+        b_badge = "<b style='color:#34D399;'>🟢 BOT RUNNING</b>" if b_run else "<b style='color:#FBBF24;'>⏸️ BOT PAUSED</b>"
+        open_txt = " | ".join(
+            f"{t['track']} {t['side']} {t['lot_size']}L @ ${t['entry_price']:,.2f} (Fl: {float(t.get('floating_pnl_usd', 0)):+.2f}$)"
+            for t in b_open
+        ) or "No open trades (waiting for ≥60% setup)"
+        st.markdown(
+            f"""<div style="background:#07131D;border:1px solid {'#10B981' if b_run else '#334155'};border-radius:8px;padding:6px 12px;margin:0 0 8px 0;font-size:11.5px;color:#E2E8F0;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;">
+                <span>🤖 {b_badge} · <b>Bal:</b> ${b_bal:,.2f} · <b>Eq:</b> ${b_eq:,.2f} (<b style="color:{'#34D399' if b_fl>=0 else '#F87171'};">{b_fl:+.2f}$</b>) · <b>Open ({len(b_open)}/2):</b> {open_txt}</span>
+                <span style="color:#94A3B8;">{bot_state_l.get('last_event', '')}</span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
     # Full-Screen Interactive Forecast Chart
     if not df_m1_l.empty:
         fig = build_mtf_forecast_chart(
@@ -812,6 +839,7 @@ def _render_live_terminal_section() -> None:
             show_liquidity=show_liquidity,
             num_targets=num_targets,
             inst_summary=inst_sum,
+            paper_open_trades=bot_state_l.get("open_trades") or [],
             history_minutes=history_minutes,
             display_tz=display_tz,
             height=650,
@@ -836,8 +864,9 @@ all_fcs_hist = [r for r in load_forecast_log(limit=25) if r.get("symbol") == sym
 accuracy_history = evaluate_logged_forecasts_accuracy(df_m1_hist, all_fcs_hist, save_file=False)
 
 # ── PROFESSIONAL BOTTOM ANALYTICS TABS ────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
+tab_bot, tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
+        "🤖 Paper Bot & Diagnostics",
         "📊 v2 TEST Scorecard",
         "🔁 Walk-Forward Folds",
         "📜 Forecast Accuracy History",
@@ -845,6 +874,181 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
         "🩺 Data Health & Coverage",
     ]
 )
+
+with tab_bot:
+    from xau_mtf.paper_bot import (
+        close_all_open_trades,
+        compute_diagnostics,
+        load_bot_state,
+        load_trade_history,
+        reset_bot_account,
+        save_bot_state,
+    )
+
+    bst = load_bot_state()
+    hist_trades = load_trade_history(limit=500)
+    diag = compute_diagnostics(hist_trades)
+
+    st.subheader("🤖 Dual-Track Paper Trading Bot (🟠 6H Fix + ⚪ 15m Taaza)")
+    if bst.get("daily_paused_reason"):
+        st.error(f"⛔ **Bot Auto-Paused:** {bst['daily_paused_reason']}")
+
+    # Control buttons (local workstation only; cloud is read-only)
+    if not IS_CLOUD:
+        bc1, bc2, bc3, bc4 = st.columns(4)
+        with bc1:
+            if not bst.get("running"):
+                if st.button("▶️ Start Bot", type="primary", use_container_width=True, key="pb_start"):
+                    bst["running"] = True
+                    bst["daily_paused_reason"] = None
+                    bst["last_event"] = "Bot STARTED by user — monitoring 6H Fix & 15m Taaza every 60s."
+                    save_bot_state(bst)
+                    st.rerun()
+            else:
+                if st.button("⏸️ Pause Bot", use_container_width=True, key="pb_pause"):
+                    bst["running"] = False
+                    bst["last_event"] = "Bot PAUSED by user (open trades still monitored)."
+                    save_bot_state(bst)
+                    st.rerun()
+        with bc2:
+            if st.button("🛑 Close All & Stop", use_container_width=True, key="pb_close_all"):
+                close_all_open_trades(df_m1_hist, reason="MANUAL_STOP")
+                st.rerun()
+        with bc3:
+            if st.button("🔄 Reset Credit Only", use_container_width=True, key="pb_reset_bal"):
+                reset_bot_account(starting_credit=float(bst.get("starting_credit", 5000.0)), clear_history=False)
+                st.rerun()
+        with bc4:
+            if st.button("🗑️ Reset + Clear History", use_container_width=True, key="pb_reset_all"):
+                reset_bot_account(starting_credit=float(bst.get("starting_credit", 5000.0)), clear_history=True)
+                st.rerun()
+
+        with st.expander("⚙️ Bot Credit, Lot Sizing (0.01 / 0.05 / 0.10) & Risk Settings", expanded=False):
+            sc1, sc2, sc3, sc4 = st.columns(4)
+            new_cred = sc1.number_input("Starting Credit ($)", min_value=100.0, max_value=1000000.0, value=float(bst.get("starting_credit", 5000.0)), step=500.0)
+            new_ln = sc2.number_input("Normal Lot (60-74%)", min_value=0.01, max_value=1.0, value=float(bst.get("lot_normal", 0.01)), step=0.01, format="%.2f")
+            new_lh = sc3.number_input("High Lot (75-84%)", min_value=0.01, max_value=2.0, value=float(bst.get("lot_high", 0.05)), step=0.01, format="%.2f")
+            new_lv = sc4.number_input("Heavy Lot (85%+)", min_value=0.01, max_value=5.0, value=float(bst.get("lot_heavy", 0.10)), step=0.01, format="%.2f")
+
+            rc1, rc2, rc3, rc4 = st.columns(4)
+            new_sp = rc1.number_input("Spread ($/oz)", min_value=0.0, max_value=2.0, value=float(bst.get("spread_usd", 0.30)), step=0.05, format="%.2f")
+            new_cm = rc2.number_input("Commission ($/lot)", min_value=0.0, max_value=30.0, value=float(bst.get("commission_per_lot", 7.0)), step=1.0)
+            new_mc = rc3.slider("Min Confidence %", 55, 85, int(bst.get("min_confidence", 60.0)))
+            new_dd = rc4.slider("Daily Max DD %", 1, 20, int(bst.get("daily_dd_limit_pct", 5.0)))
+
+            tc1, tc2, tc3 = st.columns(3)
+            en_6h = tc1.checkbox("🟠 Enable Track A (6H Fix)", value=bool(bst.get("enable_6h_fix", True)))
+            en_15m = tc2.checkbox("⚪ Enable Track B (15m Taaza)", value=bool(bst.get("enable_15m_taaza", True)))
+            if tc3.button("💾 Save Bot Settings", use_container_width=True, key="pb_save_cfg"):
+                old_start = float(bst.get("starting_credit", 5000.0))
+                bst["starting_credit"] = float(new_cred)
+                if abs(float(new_cred) - old_start) > 1e-6 and not hist_trades and not bst.get("open_trades"):
+                    bst["balance"] = float(new_cred)
+                    bst["peak_equity"] = float(new_cred)
+                    bst["daily_start_balance"] = float(new_cred)
+                bst["lot_normal"] = float(new_ln)
+                bst["lot_high"] = float(new_lh)
+                bst["lot_heavy"] = float(new_lv)
+                bst["spread_usd"] = float(new_sp)
+                bst["commission_per_lot"] = float(new_cm)
+                bst["min_confidence"] = float(new_mc)
+                bst["daily_dd_limit_pct"] = float(new_dd)
+                bst["enable_6h_fix"] = bool(en_6h)
+                bst["enable_15m_taaza"] = bool(en_15m)
+                save_bot_state(bst)
+                st.success("Bot settings saved!")
+                st.rerun()
+
+    # Account & Performance KPI Strip
+    bal = float(bst.get("balance", 5000.0))
+    eq = float(bst.get("equity", bal))
+    st_cr = max(float(bst.get("starting_credit", 5000.0)), 1.0)
+    tot_pnl = eq - st_cr
+    tot_pnl_pct = tot_pnl / st_cr * 100.0
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    k1.metric("💰 Balance", f"${bal:,.2f}", f"{tot_pnl:+.2f}$ ({tot_pnl_pct:+.2f}%)")
+    k2.metric("📈 Equity", f"${eq:,.2f}", f"Max DD {bst.get('max_drawdown_pct', 0.0):.2f}%")
+    k3.metric("🎯 Win Rate", f"{diag.get('win_rate_pct', 0.0):.1f}%", f"{diag.get('wins', 0)}W / {diag.get('losses', 0)}L")
+    k4.metric("✅ TP vs 🛑 SL", f"{diag.get('tp_hits', 0)} / {diag.get('sl_hits', 0)}", f"Total {diag.get('total_trades', 0)} closed")
+    k5.metric("⬆️ Long / ⬇️ Short", f"{diag.get('longs', 0)} / {diag.get('shorts', 0)}", f"Avg R: {diag.get('avg_r', 0.0):+.2f}R")
+    k6.metric("⚖️ Profit Factor", f"{diag.get('profit_factor', 0.0):.2f}", f"Costs: ${diag.get('total_costs_usd', 0.0):.2f}")
+
+    # Open Trades Table
+    open_list = bst.get("open_trades") or []
+    st.markdown(f"**🟢 Live Open Trades ({len(open_list)} / 2)** — Status: `{'RUNNING' if bst.get('running') else 'PAUSED'}` · _{bst.get('last_event', '')}_")
+    if open_list:
+        open_rows = [
+            {
+                "ID": t["trade_id"],
+                "Track": t["track"],
+                "Side": t["side"],
+                "Lot": t["lot_size"],
+                "Conf%": t["confidence_pct"],
+                "Entry ($)": t["entry_price"],
+                "Current ($)": t.get("current_price", t["entry_price"]),
+                "TP ($)": t["tp_price"],
+                "SL ($)": t["sl_price"],
+                "BE Armed": "✅" if t.get("breakeven_armed") else "—",
+                "Floating ($)": t.get("floating_pnl_usd", 0.0),
+                "Engine": t.get("forecaster_engine", "TFT"),
+                "Regime": t.get("regime_at_entry", ""),
+                "Pattern": t.get("candle_pattern", ""),
+            }
+            for t in open_list
+        ]
+        st.dataframe(pd.DataFrame(open_rows), use_container_width=True, hide_index=True)
+    else:
+        st.caption("Koi open trade nahi hai. Bot Start karein — jab 6H Fix ya 15m Taaza par ≥60% setup milega to khud trade open hogi.")
+
+    # Self-Diagnostic Insights ("Kahan-Kahan Masla Hai?")
+    st.markdown("### 🔍 Self-Diagnostic Report (Kahan-Kahan Masla Hai · Code Improvement Guide)")
+    for ins in diag.get("insights", []):
+        st.markdown(f"- {ins}")
+
+    if diag.get("total_trades", 0) > 0:
+        dc1, dc2, dc3 = st.columns(3)
+        with dc1:
+            st.caption("**By Track (6H Fix vs 15m Taaza)**")
+            st.dataframe(pd.DataFrame(diag["by_track"]), use_container_width=True, hide_index=True)
+        with dc2:
+            st.caption("**By Market Regime (Trend vs Chop)**")
+            st.dataframe(pd.DataFrame(diag["by_regime"]), use_container_width=True, hide_index=True)
+        with dc3:
+            st.caption("**By Lot Tier (0.01 / 0.05 / 0.10)**")
+            st.dataframe(pd.DataFrame(diag["by_lot"]), use_container_width=True, hide_index=True)
+
+        dc4, dc5, dc6 = st.columns(3)
+        with dc4:
+            st.caption("**By Session (Asian / London / NY)**")
+            st.dataframe(pd.DataFrame(diag["by_session"]), use_container_width=True, hide_index=True)
+        with dc5:
+            st.caption("**By Forecaster Engine**")
+            st.dataframe(pd.DataFrame(diag["by_engine"]), use_container_width=True, hide_index=True)
+        with dc6:
+            st.caption("**By Exit Reason**")
+            st.dataframe(pd.DataFrame(diag["by_exit"]), use_container_width=True, hide_index=True)
+
+        # Complete Forensic Closed Trade History Table + CSV Export
+        st.markdown("### 📜 Complete Closed Trade History (With Model & Market Context)")
+        hist_df = pd.DataFrame(list(reversed(hist_trades)))
+        show_cols = [
+            c
+            for c in [
+                "trade_id", "track", "side", "lot_size", "confidence_pct",
+                "entry_time_utc", "entry_price", "exit_time_utc", "exit_price",
+                "exit_reason", "net_pnl_usd", "r_multiple", "balance_after",
+                "forecaster_engine", "forecast_id", "regime_at_entry", "candle_pattern",
+                "nearest_sr", "session",
+            ]
+            if c in hist_df.columns
+        ]
+        st.dataframe(hist_df[show_cols], use_container_width=True, hide_index=True)
+        st.download_button(
+            "📥 Download Full Trade Journal (CSV)",
+            data=hist_df.to_csv(index=False).encode("utf-8"),
+            file_name="xau_paper_bot_journal.csv",
+            mime="text/csv",
+        )
 
 with tab1:
     if rep_data:

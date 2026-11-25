@@ -54,6 +54,7 @@ def build_mtf_forecast_chart(
     show_liquidity: bool = True,
     num_targets: int = 1,
     inst_summary: Optional[dict] = None,
+    paper_open_trades: Optional[list[dict]] = None,
     history_minutes: int = 30,
     display_tz: str = "UTC",
     height: int = 640,
@@ -504,6 +505,58 @@ def build_mtf_forecast_chart(
                         xanchor="right", yanchor="bottom", font=dict(size=10, color=at_col),
                         row=1, col=1,
                     )
+
+        # Active Paper Trading Bot Open Positions Overlay (Entry, TP Green, SL Red)
+        if paper_open_trades:
+            for tr in paper_open_trades:
+                ep = float(tr["entry_price"])
+                tp = float(tr["tp_price"])
+                sl = float(tr["sl_price"])
+                t_ent = _ts_to_display(pd.Timestamp(tr["entry_time_utc"]), display_tz)
+                x0_tr = max(x_start, t_ent)
+                tag = f"🤖 {tr['track']} {tr['side']} ({tr['lot_size']}L)"
+                # Entry line
+                fig.add_trace(
+                    go.Scatter(
+                        x=[x0_tr, x_end], y=[ep, ep], mode="lines",
+                        name=f"{tag} Entry: {ep:,.2f}",
+                        line=dict(color="#38BDF8", width=1.4, dash="solid"),
+                        hovertemplate=f"{tag} Entry: ${ep:,.2f}<extra></extra>",
+                    ),
+                    row=1, col=1,
+                )
+                # TP line (Green)
+                fig.add_trace(
+                    go.Scatter(
+                        x=[x0_tr, x_end], y=[tp, tp], mode="lines",
+                        name=f"✅ {tr['track']} TP: {tp:,.2f}",
+                        line=dict(color="#22C55E", width=1.3, dash="dot"),
+                        hovertemplate=f"{tr['track']} TP: ${tp:,.2f}<extra></extra>",
+                    ),
+                    row=1, col=1,
+                )
+                fig.add_annotation(
+                    x=x_end, y=tp, xref="x", yref="y",
+                    text=f"✅ {tr['track']} TP {tp:,.2f}", showarrow=False,
+                    xanchor="right", yanchor="bottom", font=dict(size=9, color="#22C55E"),
+                    row=1, col=1,
+                )
+                # SL line (Red)
+                fig.add_trace(
+                    go.Scatter(
+                        x=[x0_tr, x_end], y=[sl, sl], mode="lines",
+                        name=f"🛑 {tr['track']} SL: {sl:,.2f}",
+                        line=dict(color="#EF4444", width=1.3, dash="dot"),
+                        hovertemplate=f"{tr['track']} SL: ${sl:,.2f}<extra></extra>",
+                    ),
+                    row=1, col=1,
+                )
+                fig.add_annotation(
+                    x=x_end, y=sl, xref="x", yref="y",
+                    text=f"🛑 {tr['track']} SL {sl:,.2f}", showarrow=False,
+                    xanchor="right", yanchor="top", font=dict(size=9, color="#EF4444"),
+                    row=1, col=1,
+                )
 
         # Vertical Origin Lock Line & Top Annotation (Exact KSE-100 style)
         fig.add_vline(x=origin_disp, line=dict(color="#5A6270", width=1, dash="dash"), row=1, col=1)
