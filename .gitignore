@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.tmp
+backups/
+artifacts/optuna_tmp/
+artifacts/gpu_smoke/
+artifacts/models/*/ckpt/
+artifacts/training_live.log
+artifacts/training_status.json
+.DS_Store
+Thumbs.db

@@ -1,0 +1,38 @@
+name: XAUUSD Auto Live Sync
+
+on:
+  schedule:
+    - cron: "*/30 * * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Light Fetcher Dependencies
+        run: |
+          pip install pandas numpy pyarrow tzdata dukascopy-python
+          pip install git+https://github.com/rongardF/tvdatafeed.git
+
+      - name: Run Smart Dual-Source Sync (TradingView + Dukascopy + FIFO)
+        run: |
+          python -c "import sys; sys.path.insert(0, '..'); from xau_mtf.fetcher.fetch_adapter import smart_sync; import json; print(json.dumps(smart_sync('XAUUSD'), indent=2))" || \
+          python -c "from fetcher.fetch_adapter import smart_sync; import json; print(json.dumps(smart_sync('XAUUSD'), indent=2))"
+
+      - name: Commit and Push Updated Parquet
+        run: |
+          git config user.name "xau-auto-sync"
+          git config user.email "actions@github.com"
+          git add data/
+          git diff --staged --quiet || (git commit -m "Auto live XAUUSD 1M/15M sync" && git push)

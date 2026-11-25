@@ -1,0 +1,30 @@
+{
+  "name": "timemixer",
+  "L": 120,
+  "F": 59,
+  "C_dim": 10,
+  "H": 360,
+  "seeds": [
+    11
+  ],
+  "hp": {
+    "d": 32,
+    "levels": 3,
+    "blocks": 1,
+    "dense": 64,
+    "dropout": 0.25,
+    "ma": 5,
+    "lr": 0.0018,
+    "batch": 64,
+    "weight_decay": 0.0003
+  },
+  "history": [
+    {
+      "seed": 11,
+      "epochs_run": 9,
+      "best_epoch": 1,
+      "best_val_loss": 0.6548245549201965
+    }
+  ],
+  "cpu_only": true
+}

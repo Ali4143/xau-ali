@@ -1,0 +1,28 @@
+{
+  "name": "tft",
+  "L": 120,
+  "F": 59,
+  "C_dim": 10,
+  "H": 360,
+  "seeds": [
+    11
+  ],
+  "hp": {
+    "d": 32,
+    "heads": 2,
+    "dense": 48,
+    "dropout": 0.1,
+    "lr": 0.002,
+    "batch": 64,
+    "weight_decay": 1e-05
+  },
+  "history": [
+    {
+      "seed": 11,
+      "epochs_run": 10,
+      "best_epoch": 2,
+      "best_val_loss": 0.5926732420921326
+    }
+  ],
+  "cpu_only": false
+}

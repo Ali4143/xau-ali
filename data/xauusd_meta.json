@@ -1,0 +1,15 @@
+{
+  "symbol": "XAUUSD",
+  "source": "tradingview:OANDA:XAUUSD",
+  "updated_utc": "2026-11-25T19:00:09.320455+00:00",
+  "m1_rows": 354495,
+  "m15_rows": 23641,
+  "start_utc": "2025-11-25 17:09:00+00:00",
+  "end_utc": "2026-11-25 19:00:00+00:00",
+  "fifo_retention_days": 548,
+  "fifo_dropped_rows": 0,
+  "real_volume_nonzero_rows": 0,
+  "real_volume_note": "Spot gold real_volume is 0; tick_volume is used as proxy",
+  "duplicates_prevented": 179,
+  "tv_live_bars_added": 180
+}

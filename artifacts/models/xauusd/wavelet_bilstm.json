@@ -1,0 +1,29 @@
+{
+  "name": "wavelet_bilstm",
+  "L": 120,
+  "F": 59,
+  "C_dim": 10,
+  "H": 360,
+  "seeds": [
+    11
+  ],
+  "hp": {
+    "units1": 96,
+    "units2": 32,
+    "dense": 48,
+    "dropout": 0.15,
+    "rdrop": 0.1,
+    "lr": 0.001,
+    "batch": 64,
+    "weight_decay": 0.0001
+  },
+  "history": [
+    {
+      "seed": 11,
+      "epochs_run": 12,
+      "best_epoch": 5,
+      "best_val_loss": 0.6109948754310608
+    }
+  ],
+  "cpu_only": true
+}

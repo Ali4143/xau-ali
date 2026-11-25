@@ -1,0 +1,1331 @@
+{
+  "deployment_gate": {
+    "verdict": "NOT VERIFIED",
+    "dashboard_label": "Research output, not verified.",
+    "deployable": false,
+    "failed_conditions": [
+      "Cond 2 FAILED: Ensemble MAE ($17.850) worse than single member(s): tft ($17.721), wavelet_bilstm ($17.836)",
+      "Cond 3a FAILED: HAC DM Holm p=0.0923 (n=497, status=OK)",
+      "Cond 3b FAILED: Non-Overlap DM Holm p=0.1808 (n=23, status=INSUFFICIENT SAMPLE (n=23 < 30))"
+    ],
+    "reason": "3 condition(s) failed: Cond 2 FAILED: Ensemble MAE ($17.850) worse than single member(s): tft ($17.721), wavelet_bilstm ($17.836) | Cond 3a FAILED: HAC DM Holm p=0.0923 (n=497, status=OK) | Cond 3b FAILED: Non-Overlap DM Holm p=0.1808 (n=23, status=INSUFFICIENT SAMPLE (n=23 < 30))"
+  },
+  "data_meta": {
+    "symbol": "XAUUSD",
+    "source": "dukascopy_bid",
+    "updated_utc": "2026-11-25T15:39:23.614212+00:00",
+    "m1_rows": 58899,
+    "m15_rows": 3927,
+    "start_utc": "2026-09-27 22:00:00+00:00",
+    "end_utc": "2026-11-25 14:39:00+00:00",
+    "fifo_retention_days": 548,
+    "fifo_dropped_rows": 0,
+    "real_volume_nonzero_rows": 0,
+    "real_volume_note": "Spot gold real_volume is 0; tick_volume is used as proxy"
+  },
+  "ensemble_weights": {
+    "lightgbm": 0.2059,
+    "tcn": 0.0,
+    "tft": 0.0745,
+    "wavelet_bilstm": 0.7196,
+    "timemixer": 0.0
+  },
+  "ensemble_weight_diagnostics": {
+    "nochange_val_mae_usd": 14.2095,
+    "nochange_val_pinball": 0.645812,
+    "candidates": {
+      "lightgbm": {
+        "val_mae_usd": 13.7987,
+        "val_pinball": 0.623387,
+        "beats_nochange_val_mae": true,
+        "excluded": false
+      },
+      "tcn": {
+        "val_mae_usd": 13.6056,
+        "val_pinball": 0.625775,
+        "beats_nochange_val_mae": true,
+        "excluded": false
+      },
+      "tft": {
+        "val_mae_usd": 13.6665,
+        "val_pinball": 0.62517,
+        "beats_nochange_val_mae": true,
+        "excluded": false
+      },
+      "wavelet_bilstm": {
+        "val_mae_usd": 13.5181,
+        "val_pinball": 0.611672,
+        "beats_nochange_val_mae": true,
+        "excluded": false
+      },
+      "timemixer": {
+        "val_mae_usd": 14.3771,
+        "val_pinball": 0.65934,
+        "beats_nochange_val_mae": false,
+        "excluded": true
+      }
+    },
+    "excluded_models": [
+      "timemixer"
+    ],
+    "included_models": [
+      "lightgbm",
+      "tcn",
+      "tft",
+      "wavelet_bilstm"
+    ],
+    "ensemble_val_pinball": 0.610122
+  },
+  "models": [
+    {
+      "model": "no_change",
+      "test_samples": 497,
+      "pinball_loss": 0.58174,
+      "MAE_USD": 18.569,
+      "RMSE_USD": 25.356,
+      "coverage_80_pct": 79.61,
+      "DA_1h": {
+        "da_pct": null,
+        "label": "N/A (flat forecast)",
+        "n_total": 479,
+        "n_eval": 0,
+        "excluded_flat": 479,
+        "excluded_zero_y": 0
+      },
+      "DA_3h": {
+        "da_pct": null,
+        "label": "N/A (flat forecast)",
+        "n_total": 439,
+        "n_eval": 0,
+        "excluded_flat": 439,
+        "excluded_zero_y": 0
+      },
+      "DA_EOS": {
+        "da_pct": null,
+        "label": "N/A (flat forecast)",
+        "n_total": 497,
+        "n_eval": 0,
+        "excluded_flat": 497,
+        "excluded_zero_y": 0
+      },
+      "DA_1h_pct": null,
+      "DA_3h_pct": null,
+      "DA_EOS_pct": null,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.904,
+          "RMSE_USD": 5.708
+        },
+        "16-60": {
+          "MAE_USD": 8.624,
+          "RMSE_USD": 12.194
+        },
+        "61-180": {
+          "MAE_USD": 15.618,
+          "RMSE_USD": 21.016
+        },
+        "181-360": {
+          "MAE_USD": 25.229,
+          "RMSE_USD": 31.667
+        }
+      },
+      "directional_proxy_1h": {
+        "note": "Directional proxy, not a trading backtest.",
+        "rule": "Long if q50[+60] > +0.1 ATR15, Short if < -0.1 ATR15, else Flat",
+        "n_trades": 0,
+        "n_flat_skipped": 479,
+        "gross_usd_per_trade": 0.0,
+        "net_usd_per_trade": 0.0,
+        "commission_usd": 0.0
+      },
+      "trading_proxy_1h_gross_usd": 0.0,
+      "trading_proxy_1h_net_usd": 0.0
+    },
+    {
+      "model": "hist_profile",
+      "test_samples": 497,
+      "pinball_loss": 0.57288,
+      "MAE_USD": 18.395,
+      "RMSE_USD": 25.315,
+      "coverage_80_pct": 75.86,
+      "DA_1h": {
+        "da_pct": 44.89,
+        "label": "44.89%",
+        "n_total": 479,
+        "n_eval": 479,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_3h": {
+        "da_pct": 53.65,
+        "label": "53.65%",
+        "n_total": 439,
+        "n_eval": 438,
+        "excluded_flat": 0,
+        "excluded_zero_y": 1
+      },
+      "DA_EOS": {
+        "da_pct": 50.92,
+        "label": "50.92%",
+        "n_total": 497,
+        "n_eval": 491,
+        "excluded_flat": 6,
+        "excluded_zero_y": 0
+      },
+      "DA_1h_pct": 44.89,
+      "DA_3h_pct": 53.65,
+      "DA_EOS_pct": 50.92,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.92,
+          "RMSE_USD": 5.738
+        },
+        "16-60": {
+          "MAE_USD": 8.766,
+          "RMSE_USD": 12.397
+        },
+        "61-180": {
+          "MAE_USD": 15.865,
+          "RMSE_USD": 21.421
+        },
+        "181-360": {
+          "MAE_USD": 24.627,
+          "RMSE_USD": 31.368
+        }
+      },
+      "directional_proxy_1h": {
+        "note": "Directional proxy, not a trading backtest.",
+        "rule": "Long if q50[+60] > +0.1 ATR15, Short if < -0.1 ATR15, else Flat",
+        "n_trades": 304,
+        "n_flat_skipped": 175,
+        "gross_usd_per_trade": -1.6352,
+        "net_usd_per_trade": -1.8852,
+        "commission_usd": 0.0
+      },
+      "trading_proxy_1h_gross_usd": -1.6352,
+      "trading_proxy_1h_net_usd": -1.8852,
+      "skill_edge_vs_nochange_pct": 0.934,
+      "dm_hac": {
+        "dm_stat": 0.3249,
+        "p_value": 0.37262,
+        "p_two_sided": 0.74525,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 6.911421,
+        "var_hac": 75.216864,
+        "sufficient_sample": true,
+        "status": "OK",
+        "p_holm": 0.74524
+      },
+      "dm_hac_se": {
+        "dm_stat": 0.0478,
+        "p_value": 0.48093,
+        "p_two_sided": 0.96185,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 42083.045311,
+        "var_hac": 471665.993468,
+        "sufficient_sample": true,
+        "status": "OK"
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 0.1448,
+        "p_value": 0.44243,
+        "p_two_sided": 0.88486,
+        "n": 23,
+        "lag": 0,
+        "var_naive": 4.515235,
+        "var_hac": 4.515235,
+        "sufficient_sample": false,
+        "status": "INSUFFICIENT SAMPLE (n=23 < 30)",
+        "p_holm": 0.88486
+      },
+      "dm_horizons": {
+        "1h": {
+          "hac": {
+            "dm_stat": -2.3014,
+            "p_value": 0.98931,
+            "p_two_sided": 0.02137,
+            "n": 479,
+            "lag": 3,
+            "var_naive": 3.278856,
+            "var_hac": 6.207329,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": -2.3264,
+            "p_value": 0.99,
+            "p_two_sided": 0.02,
+            "n": 120,
+            "lag": 0,
+            "var_naive": 2.985298,
+            "var_hac": 2.985298,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        },
+        "3h": {
+          "hac": {
+            "dm_stat": 0.3095,
+            "p_value": 0.37846,
+            "p_two_sided": 0.75692,
+            "n": 439,
+            "lag": 11,
+            "var_naive": 19.737979,
+            "var_hac": 86.968336,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 0.092,
+            "p_value": 0.46335,
+            "p_two_sided": 0.9267,
+            "n": 39,
+            "lag": 0,
+            "var_naive": 16.506091,
+            "var_hac": 16.506091,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        }
+      }
+    },
+    {
+      "model": "lightgbm",
+      "test_samples": 497,
+      "pinball_loss": 0.57637,
+      "MAE_USD": 18.105,
+      "RMSE_USD": 24.86,
+      "coverage_80_pct": 78.22,
+      "DA_1h": {
+        "da_pct": 54.7,
+        "label": "54.70%",
+        "n_total": 479,
+        "n_eval": 479,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_3h": {
+        "da_pct": 67.35,
+        "label": "67.35%",
+        "n_total": 439,
+        "n_eval": 438,
+        "excluded_flat": 0,
+        "excluded_zero_y": 1
+      },
+      "DA_EOS": {
+        "da_pct": 71.03,
+        "label": "71.03%",
+        "n_total": 497,
+        "n_eval": 497,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_1h_pct": 54.7,
+      "DA_3h_pct": 67.35,
+      "DA_EOS_pct": 71.03,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.896,
+          "RMSE_USD": 5.705
+        },
+        "16-60": {
+          "MAE_USD": 8.622,
+          "RMSE_USD": 12.188
+        },
+        "61-180": {
+          "MAE_USD": 15.432,
+          "RMSE_USD": 20.792
+        },
+        "181-360": {
+          "MAE_USD": 24.373,
+          "RMSE_USD": 30.924
+        }
+      },
+      "directional_proxy_1h": {
+        "note": "Directional proxy, not a trading backtest.",
+        "rule": "Long if q50[+60] > +0.1 ATR15, Short if < -0.1 ATR15, else Flat",
+        "n_trades": 24,
+        "n_flat_skipped": 455,
+        "gross_usd_per_trade": 4.0288,
+        "net_usd_per_trade": 3.7788,
+        "commission_usd": 0.0
+      },
+      "trading_proxy_1h_gross_usd": 4.0288,
+      "trading_proxy_1h_net_usd": 3.7788,
+      "skill_edge_vs_nochange_pct": 2.5,
+      "dm_hac": {
+        "dm_stat": 1.9692,
+        "p_value": 0.02446,
+        "p_two_sided": 0.04892,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 2.160175,
+        "var_hac": 24.938945,
+        "sufficient_sample": true,
+        "status": "OK",
+        "p_holm": 0.1223
+      },
+      "dm_hac_se": {
+        "dm_stat": 1.6344,
+        "p_value": 0.05109,
+        "p_two_sided": 0.10218,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 8915.855583,
+        "var_hac": 99505.111888,
+        "sufficient_sample": true,
+        "status": "OK"
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 0.9721,
+        "p_value": 0.16549,
+        "p_two_sided": 0.33098,
+        "n": 23,
+        "lag": 0,
+        "var_naive": 2.203939,
+        "var_hac": 2.203939,
+        "sufficient_sample": false,
+        "status": "INSUFFICIENT SAMPLE (n=23 < 30)",
+        "p_holm": 0.57312
+      },
+      "dm_horizons": {
+        "1h": {
+          "hac": {
+            "dm_stat": 1.305,
+            "p_value": 0.09594,
+            "p_two_sided": 0.19189,
+            "n": 479,
+            "lag": 3,
+            "var_naive": 0.304272,
+            "var_hac": 0.579903,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": -0.472,
+            "p_value": 0.68153,
+            "p_two_sided": 0.63693,
+            "n": 120,
+            "lag": 0,
+            "var_naive": 0.323113,
+            "var_hac": 0.323113,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        },
+        "3h": {
+          "hac": {
+            "dm_stat": 2.1375,
+            "p_value": 0.01628,
+            "p_two_sided": 0.03256,
+            "n": 439,
+            "lag": 11,
+            "var_naive": 6.5359,
+            "var_hac": 44.861883,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 1.1933,
+            "p_value": 0.11638,
+            "p_two_sided": 0.23276,
+            "n": 39,
+            "lag": 0,
+            "var_naive": 6.867549,
+            "var_hac": 6.867549,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        }
+      }
+    },
+    {
+      "model": "tcn",
+      "test_samples": 497,
+      "pinball_loss": 0.57809,
+      "MAE_USD": 18.061,
+      "RMSE_USD": 24.795,
+      "coverage_80_pct": 82.59,
+      "DA_1h": {
+        "da_pct": 56.16,
+        "label": "56.16%",
+        "n_total": 479,
+        "n_eval": 479,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_3h": {
+        "da_pct": 67.12,
+        "label": "67.12%",
+        "n_total": 439,
+        "n_eval": 438,
+        "excluded_flat": 0,
+        "excluded_zero_y": 1
+      },
+      "DA_EOS": {
+        "da_pct": 58.35,
+        "label": "58.35%",
+        "n_total": 497,
+        "n_eval": 497,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_1h_pct": 56.16,
+      "DA_3h_pct": 67.12,
+      "DA_EOS_pct": 58.35,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 4.15,
+          "RMSE_USD": 5.982
+        },
+        "16-60": {
+          "MAE_USD": 8.698,
+          "RMSE_USD": 12.29
+        },
+        "61-180": {
+          "MAE_USD": 15.365,
+          "RMSE_USD": 20.758
+        },
+        "181-360": {
+          "MAE_USD": 24.28,
+          "RMSE_USD": 30.812
+        }
+      },
+      "directional_proxy_1h": {
+        "note": "Directional proxy, not a trading backtest.",
+        "rule": "Long if q50[+60] > +0.1 ATR15, Short if < -0.1 ATR15, else Flat",
+        "n_trades": 262,
+        "n_flat_skipped": 217,
+        "gross_usd_per_trade": 2.1629,
+        "net_usd_per_trade": 1.9129,
+        "commission_usd": 0.0
+      },
+      "trading_proxy_1h_gross_usd": 2.1629,
+      "trading_proxy_1h_net_usd": 1.9129,
+      "skill_edge_vs_nochange_pct": 2.735,
+      "dm_hac": {
+        "dm_stat": 1.4935,
+        "p_value": 0.06766,
+        "p_two_sided": 0.13532,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 4.167367,
+        "var_hac": 51.241323,
+        "sufficient_sample": true,
+        "status": "OK",
+        "p_holm": 0.20298
+      },
+      "dm_hac_se": {
+        "dm_stat": 1.3211,
+        "p_value": 0.09323,
+        "p_two_sided": 0.18647,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 16985.203134,
+        "var_hac": 192543.168126,
+        "sufficient_sample": true,
+        "status": "OK"
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 1.0657,
+        "p_value": 0.14328,
+        "p_two_sided": 0.28657,
+        "n": 23,
+        "lag": 0,
+        "var_naive": 4.171047,
+        "var_hac": 4.171047,
+        "sufficient_sample": false,
+        "status": "INSUFFICIENT SAMPLE (n=23 < 30)",
+        "p_holm": 0.57312
+      },
+      "dm_horizons": {
+        "1h": {
+          "hac": {
+            "dm_stat": 0.3656,
+            "p_value": 0.35732,
+            "p_two_sided": 0.71464,
+            "n": 479,
+            "lag": 3,
+            "var_naive": 2.765436,
+            "var_hac": 3.965094,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": -0.0559,
+            "p_value": 0.52228,
+            "p_two_sided": 0.95543,
+            "n": 120,
+            "lag": 0,
+            "var_naive": 2.773373,
+            "var_hac": 2.773373,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        },
+        "3h": {
+          "hac": {
+            "dm_stat": 1.09,
+            "p_value": 0.13785,
+            "p_two_sided": 0.27569,
+            "n": 439,
+            "lag": 11,
+            "var_naive": 36.288882,
+            "var_hac": 263.813673,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 0.6003,
+            "p_value": 0.27417,
+            "p_two_sided": 0.54833,
+            "n": 39,
+            "lag": 0,
+            "var_naive": 46.076452,
+            "var_hac": 46.076452,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        }
+      }
+    },
+    {
+      "model": "tft",
+      "test_samples": 497,
+      "pinball_loss": 0.56159,
+      "MAE_USD": 17.721,
+      "RMSE_USD": 24.424,
+      "coverage_80_pct": 78.51,
+      "DA_1h": {
+        "da_pct": 61.59,
+        "label": "61.59%",
+        "n_total": 479,
+        "n_eval": 479,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_3h": {
+        "da_pct": 67.35,
+        "label": "67.35%",
+        "n_total": 439,
+        "n_eval": 438,
+        "excluded_flat": 0,
+        "excluded_zero_y": 1
+      },
+      "DA_EOS": {
+        "da_pct": 56.54,
+        "label": "56.54%",
+        "n_total": 497,
+        "n_eval": 497,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_1h_pct": 61.59,
+      "DA_3h_pct": 67.35,
+      "DA_EOS_pct": 56.54,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.971,
+          "RMSE_USD": 5.785
+        },
+        "16-60": {
+          "MAE_USD": 8.6,
+          "RMSE_USD": 12.197
+        },
+        "61-180": {
+          "MAE_USD": 15.198,
+          "RMSE_USD": 20.563
+        },
+        "181-360": {
+          "MAE_USD": 23.723,
+          "RMSE_USD": 30.284
+        }
+      },
+      "directional_proxy_1h": {
+        "note": "Directional proxy, not a trading backtest.",
+        "rule": "Long if q50[+60] > +0.1 ATR15, Short if < -0.1 ATR15, else Flat",
+        "n_trades": 441,
+        "n_flat_skipped": 38,
+        "gross_usd_per_trade": 3.1487,
+        "net_usd_per_trade": 2.8987,
+        "commission_usd": 0.0
+      },
+      "trading_proxy_1h_gross_usd": 3.1487,
+      "trading_proxy_1h_net_usd": 2.8987,
+      "skill_edge_vs_nochange_pct": 4.565,
+      "dm_hac": {
+        "dm_stat": 2.2317,
+        "p_value": 0.01282,
+        "p_two_sided": 0.02564,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 5.100855,
+        "var_hac": 57.08167,
+        "sufficient_sample": true,
+        "status": "OK",
+        "p_holm": 0.08974
+      },
+      "dm_hac_se": {
+        "dm_stat": 1.8882,
+        "p_value": 0.0295,
+        "p_two_sided": 0.05901,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 21135.543029,
+        "var_hac": 240032.212913,
+        "sufficient_sample": true,
+        "status": "OK"
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 1.3046,
+        "p_value": 0.09602,
+        "p_two_sided": 0.19204,
+        "n": 23,
+        "lag": 0,
+        "var_naive": 5.929177,
+        "var_hac": 5.929177,
+        "sufficient_sample": false,
+        "status": "INSUFFICIENT SAMPLE (n=23 < 30)",
+        "p_holm": 0.4801
+      },
+      "dm_horizons": {
+        "1h": {
+          "hac": {
+            "dm_stat": 1.9995,
+            "p_value": 0.02278,
+            "p_two_sided": 0.04555,
+            "n": 479,
+            "lag": 3,
+            "var_naive": 5.893475,
+            "var_hac": 11.274208,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 0.2244,
+            "p_value": 0.41121,
+            "p_two_sided": 0.82241,
+            "n": 120,
+            "lag": 0,
+            "var_naive": 5.662878,
+            "var_hac": 5.662878,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        },
+        "3h": {
+          "hac": {
+            "dm_stat": 1.6692,
+            "p_value": 0.04754,
+            "p_two_sided": 0.09507,
+            "n": 439,
+            "lag": 11,
+            "var_naive": 18.956935,
+            "var_hac": 128.92788,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 1.0434,
+            "p_value": 0.14838,
+            "p_two_sided": 0.29676,
+            "n": 39,
+            "lag": 0,
+            "var_naive": 18.156827,
+            "var_hac": 18.156827,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        }
+      }
+    },
+    {
+      "model": "wavelet_bilstm",
+      "test_samples": 497,
+      "pinball_loss": 0.58649,
+      "MAE_USD": 17.836,
+      "RMSE_USD": 24.742,
+      "coverage_80_pct": 80.69,
+      "DA_1h": {
+        "da_pct": 61.38,
+        "label": "61.38%",
+        "n_total": 479,
+        "n_eval": 479,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_3h": {
+        "da_pct": 66.21,
+        "label": "66.21%",
+        "n_total": 439,
+        "n_eval": 438,
+        "excluded_flat": 0,
+        "excluded_zero_y": 1
+      },
+      "DA_EOS": {
+        "da_pct": 58.55,
+        "label": "58.55%",
+        "n_total": 497,
+        "n_eval": 497,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_1h_pct": 61.38,
+      "DA_3h_pct": 66.21,
+      "DA_EOS_pct": 58.55,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.907,
+          "RMSE_USD": 5.729
+        },
+        "16-60": {
+          "MAE_USD": 8.503,
+          "RMSE_USD": 12.114
+        },
+        "61-180": {
+          "MAE_USD": 14.985,
+          "RMSE_USD": 20.44
+        },
+        "181-360": {
+          "MAE_USD": 24.165,
+          "RMSE_USD": 30.905
+        }
+      },
+      "directional_proxy_1h": {
+        "note": "Directional proxy, not a trading backtest.",
+        "rule": "Long if q50[+60] > +0.1 ATR15, Short if < -0.1 ATR15, else Flat",
+        "n_trades": 360,
+        "n_flat_skipped": 119,
+        "gross_usd_per_trade": 2.2827,
+        "net_usd_per_trade": 2.0327,
+        "commission_usd": 0.0
+      },
+      "trading_proxy_1h_gross_usd": 2.2827,
+      "trading_proxy_1h_net_usd": 2.0327,
+      "skill_edge_vs_nochange_pct": 3.946,
+      "dm_hac": {
+        "dm_stat": 1.9174,
+        "p_value": 0.0276,
+        "p_two_sided": 0.05519,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 5.595836,
+        "var_hac": 66.703159,
+        "sufficient_sample": true,
+        "status": "OK",
+        "p_holm": 0.1223
+      },
+      "dm_hac_se": {
+        "dm_stat": 1.2989,
+        "p_value": 0.09699,
+        "p_two_sided": 0.19397,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 21575.17927,
+        "var_hac": 251077.741229,
+        "sufficient_sample": true,
+        "status": "OK"
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 1.9459,
+        "p_value": 0.02583,
+        "p_two_sided": 0.05167,
+        "n": 23,
+        "lag": 0,
+        "var_naive": 3.772872,
+        "var_hac": 3.772872,
+        "sufficient_sample": false,
+        "status": "INSUFFICIENT SAMPLE (n=23 < 30)",
+        "p_holm": 0.18081
+      },
+      "dm_horizons": {
+        "1h": {
+          "hac": {
+            "dm_stat": 2.0799,
+            "p_value": 0.01877,
+            "p_two_sided": 0.03753,
+            "n": 479,
+            "lag": 3,
+            "var_naive": 3.941764,
+            "var_hac": 7.295043,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 0.5313,
+            "p_value": 0.29759,
+            "p_two_sided": 0.59518,
+            "n": 120,
+            "lag": 0,
+            "var_naive": 3.977296,
+            "var_hac": 3.977296,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        },
+        "3h": {
+          "hac": {
+            "dm_stat": 1.6944,
+            "p_value": 0.04509,
+            "p_two_sided": 0.09019,
+            "n": 439,
+            "lag": 11,
+            "var_naive": 22.320256,
+            "var_hac": 142.00806,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 1.0972,
+            "p_value": 0.13628,
+            "p_two_sided": 0.27256,
+            "n": 39,
+            "lag": 0,
+            "var_naive": 23.418666,
+            "var_hac": 23.418666,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        }
+      }
+    },
+    {
+      "model": "timemixer",
+      "test_samples": 497,
+      "pinball_loss": 0.70032,
+      "MAE_USD": 21.731,
+      "RMSE_USD": 29.013,
+      "coverage_80_pct": 72.56,
+      "DA_1h": {
+        "da_pct": 40.08,
+        "label": "40.08%",
+        "n_total": 479,
+        "n_eval": 479,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_3h": {
+        "da_pct": 45.43,
+        "label": "45.43%",
+        "n_total": 439,
+        "n_eval": 438,
+        "excluded_flat": 0,
+        "excluded_zero_y": 1
+      },
+      "DA_EOS": {
+        "da_pct": 43.86,
+        "label": "43.86%",
+        "n_total": 497,
+        "n_eval": 497,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_1h_pct": 40.08,
+      "DA_3h_pct": 45.43,
+      "DA_EOS_pct": 43.86,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 5.106,
+          "RMSE_USD": 6.977
+        },
+        "16-60": {
+          "MAE_USD": 9.913,
+          "RMSE_USD": 13.5
+        },
+        "61-180": {
+          "MAE_USD": 17.633,
+          "RMSE_USD": 23.141
+        },
+        "181-360": {
+          "MAE_USD": 30.007,
+          "RMSE_USD": 36.715
+        }
+      },
+      "directional_proxy_1h": {
+        "note": "Directional proxy, not a trading backtest.",
+        "rule": "Long if q50[+60] > +0.1 ATR15, Short if < -0.1 ATR15, else Flat",
+        "n_trades": 449,
+        "n_flat_skipped": 30,
+        "gross_usd_per_trade": -3.2361,
+        "net_usd_per_trade": -3.4861,
+        "commission_usd": 0.0
+      },
+      "trading_proxy_1h_gross_usd": -3.2361,
+      "trading_proxy_1h_net_usd": -3.4861,
+      "skill_edge_vs_nochange_pct": -17.029,
+      "dm_hac": {
+        "dm_stat": -3.4615,
+        "p_value": 0.99973,
+        "p_two_sided": 0.00054,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 28.531688,
+        "var_hac": 386.343591,
+        "sufficient_sample": true,
+        "status": "OK",
+        "p_holm": 0.99973
+      },
+      "dm_hac_se": {
+        "dm_stat": -2.9742,
+        "p_value": 0.99853,
+        "p_two_sided": 0.00294,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 144741.996519,
+        "var_hac": 1891806.187233,
+        "sufficient_sample": true,
+        "status": "OK"
+      },
+      "dm_non_overlapping": {
+        "dm_stat": -1.7255,
+        "p_value": 0.95779,
+        "p_two_sided": 0.08443,
+        "n": 23,
+        "lag": 0,
+        "var_naive": 35.836835,
+        "var_hac": 35.836835,
+        "sufficient_sample": false,
+        "status": "INSUFFICIENT SAMPLE (n=23 < 30)",
+        "p_holm": 0.95779
+      },
+      "dm_horizons": {
+        "1h": {
+          "hac": {
+            "dm_stat": -7.3159,
+            "p_value": 1.0,
+            "p_two_sided": 0.0,
+            "n": 479,
+            "lag": 3,
+            "var_naive": 49.852029,
+            "var_hac": 102.610902,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": -5.5295,
+            "p_value": 1.0,
+            "p_two_sided": 0.0,
+            "n": 120,
+            "lag": 0,
+            "var_naive": 46.925088,
+            "var_hac": 46.925088,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        },
+        "3h": {
+          "hac": {
+            "dm_stat": -2.9398,
+            "p_value": 0.99836,
+            "p_two_sided": 0.00328,
+            "n": 439,
+            "lag": 11,
+            "var_naive": 63.686971,
+            "var_hac": 423.532904,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": -2.2208,
+            "p_value": 0.98682,
+            "p_two_sided": 0.02637,
+            "n": 39,
+            "lag": 0,
+            "var_naive": 63.354384,
+            "var_hac": 63.354384,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        }
+      }
+    },
+    {
+      "model": "ensemble",
+      "test_samples": 497,
+      "pinball_loss": 0.57682,
+      "MAE_USD": 17.85,
+      "RMSE_USD": 24.7,
+      "coverage_80_pct": 81.1,
+      "DA_1h": {
+        "da_pct": 61.17,
+        "label": "61.17%",
+        "n_total": 479,
+        "n_eval": 479,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_3h": {
+        "da_pct": 67.12,
+        "label": "67.12%",
+        "n_total": 439,
+        "n_eval": 438,
+        "excluded_flat": 0,
+        "excluded_zero_y": 1
+      },
+      "DA_EOS": {
+        "da_pct": 62.78,
+        "label": "62.78%",
+        "n_total": 497,
+        "n_eval": 497,
+        "excluded_flat": 0,
+        "excluded_zero_y": 0
+      },
+      "DA_1h_pct": 61.17,
+      "DA_3h_pct": 67.12,
+      "DA_EOS_pct": 62.78,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.899,
+          "RMSE_USD": 5.718
+        },
+        "16-60": {
+          "MAE_USD": 8.512,
+          "RMSE_USD": 12.112
+        },
+        "61-180": {
+          "MAE_USD": 15.054,
+          "RMSE_USD": 20.484
+        },
+        "181-360": {
+          "MAE_USD": 24.14,
+          "RMSE_USD": 30.811
+        }
+      },
+      "directional_proxy_1h": {
+        "note": "Directional proxy, not a trading backtest.",
+        "rule": "Long if q50[+60] > +0.1 ATR15, Short if < -0.1 ATR15, else Flat",
+        "n_trades": 329,
+        "n_flat_skipped": 150,
+        "gross_usd_per_trade": 2.2653,
+        "net_usd_per_trade": 2.0153,
+        "commission_usd": 0.0
+      },
+      "trading_proxy_1h_gross_usd": 2.2653,
+      "trading_proxy_1h_net_usd": 2.0153,
+      "skill_edge_vs_nochange_pct": 3.871,
+      "dm_hac": {
+        "dm_stat": 2.16,
+        "p_value": 0.01539,
+        "p_two_sided": 0.03077,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 4.13174,
+        "var_hac": 50.130699,
+        "sufficient_sample": true,
+        "status": "OK",
+        "p_holm": 0.09234
+      },
+      "dm_hac_se": {
+        "dm_stat": 1.5653,
+        "p_value": 0.05875,
+        "p_two_sided": 0.11751,
+        "n": 497,
+        "lag": 23,
+        "var_naive": 16429.618238,
+        "var_hac": 192932.369239,
+        "sufficient_sample": true,
+        "status": "OK"
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 1.9346,
+        "p_value": 0.02652,
+        "p_two_sided": 0.05304,
+        "n": 23,
+        "lag": 0,
+        "var_naive": 3.072819,
+        "var_hac": 3.072819,
+        "sufficient_sample": false,
+        "status": "INSUFFICIENT SAMPLE (n=23 < 30)",
+        "p_holm": 0.18081
+      },
+      "dm_horizons": {
+        "1h": {
+          "hac": {
+            "dm_stat": 2.2371,
+            "p_value": 0.01264,
+            "p_two_sided": 0.02528,
+            "n": 479,
+            "lag": 3,
+            "var_naive": 2.795306,
+            "var_hac": 5.257323,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 0.638,
+            "p_value": 0.26172,
+            "p_two_sided": 0.52344,
+            "n": 120,
+            "lag": 0,
+            "var_naive": 2.868213,
+            "var_hac": 2.868213,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        },
+        "3h": {
+          "hac": {
+            "dm_stat": 1.8256,
+            "p_value": 0.03396,
+            "p_two_sided": 0.06791,
+            "n": 439,
+            "lag": 11,
+            "var_naive": 17.225009,
+            "var_hac": 112.42501,
+            "sufficient_sample": true,
+            "status": "OK"
+          },
+          "non_overlapping": {
+            "dm_stat": 1.168,
+            "p_value": 0.12141,
+            "p_two_sided": 0.24281,
+            "n": 39,
+            "lag": 0,
+            "var_naive": 18.05502,
+            "var_hac": 18.05502,
+            "sufficient_sample": true,
+            "status": "OK"
+          }
+        }
+      }
+    }
+  ],
+  "walk_forward": {
+    "note": "Test span is 7.5 days (< 30d); used rolling 3-day folds stepping 1d.",
+    "n_folds": 6,
+    "positive_folds": 5,
+    "positive_fold_pct": 83.33,
+    "mean_mae_usd": 19.51,
+    "std_mae_usd": 2.428,
+    "mean_skill_pct": 2.604,
+    "std_skill_pct": 2.28,
+    "folds": [
+      {
+        "fold": 1,
+        "start_utc": "2026-11-17 21:07:00+00:00",
+        "end_utc": "2026-11-20 20:52:00+00:00",
+        "n_origins": 273,
+        "n_non_overlapping_360m": 12,
+        "MAE_USD": 18.29,
+        "DA_1h_pct": 65.15,
+        "skill_pct": 6.138,
+        "hac_dm_p": 0.01627,
+        "non_overlap_dm_p": 0.03627,
+        "beats_nochange": true
+      },
+      {
+        "fold": 2,
+        "start_utc": "2026-11-18 21:07:00+00:00",
+        "end_utc": "2026-11-20 21:37:00+00:00",
+        "n_origins": 185,
+        "n_non_overlapping_360m": 9,
+        "MAE_USD": 19.701,
+        "DA_1h_pct": 63.07,
+        "skill_pct": 4.983,
+        "hac_dm_p": 0.10274,
+        "non_overlap_dm_p": 0.18193,
+        "beats_nochange": true
+      },
+      {
+        "fold": 3,
+        "start_utc": "2026-11-19 21:07:00+00:00",
+        "end_utc": "2026-11-20 21:37:00+00:00",
+        "n_origins": 94,
+        "n_non_overlapping_360m": 5,
+        "MAE_USD": 24.709,
+        "DA_1h_pct": 61.36,
+        "skill_pct": 2.777,
+        "hac_dm_p": 0.33678,
+        "non_overlap_dm_p": 0.43078,
+        "beats_nochange": true
+      },
+      {
+        "fold": 4,
+        "start_utc": "2026-11-20 21:07:00+00:00",
+        "end_utc": "2026-11-23 20:52:00+00:00",
+        "n_origins": 91,
+        "n_non_overlapping_360m": 5,
+        "MAE_USD": 18.735,
+        "DA_1h_pct": 46.59,
+        "skill_pct": -0.083,
+        "hac_dm_p": 0.48398,
+        "non_overlap_dm_p": 0.8312,
+        "beats_nochange": false
+      },
+      {
+        "fold": 5,
+        "start_utc": "2026-11-22 23:07:00+00:00",
+        "end_utc": "2026-11-24 20:52:00+00:00",
+        "n_origins": 179,
+        "n_non_overlapping_360m": 8,
+        "MAE_USD": 18.287,
+        "DA_1h_pct": 55.11,
+        "skill_pct": 0.974,
+        "hac_dm_p": 0.18297,
+        "non_overlap_dm_p": 0.24303,
+        "beats_nochange": true
+      },
+      {
+        "fold": 6,
+        "start_utc": "2026-11-22 23:07:00+00:00",
+        "end_utc": "2026-11-25 08:37:00+00:00",
+        "n_origins": 221,
+        "n_non_overlapping_360m": 10,
+        "MAE_USD": 17.336,
+        "DA_1h_pct": 56.28,
+        "skill_pct": 0.833,
+        "hac_dm_p": 0.18464,
+        "non_overlap_dm_p": 0.11751,
+        "beats_nochange": true
+      }
+    ]
+  },
+  "target_high_low_eval": {
+    "n_evaluated": 497,
+    "target_high_reach_rate_pct": 26.76,
+    "target_low_reach_rate_pct": 63.98,
+    "full_range_containment_pct": 65.79,
+    "naive_2atr_high_reach_pct": 27.36,
+    "naive_2atr_low_reach_pct": 60.36
+  },
+  "direction_meta_brier": {
+    "1h": {
+      "n_tr": 341,
+      "n_cal": 185,
+      "brier_baseline": 0.25487,
+      "brier_raw": 0.27247,
+      "brier_calibrated": 0.2314,
+      "improves_brier": true
+    },
+    "3h": {
+      "n_tr": 309,
+      "n_cal": 169,
+      "brier_baseline": 0.24129,
+      "brier_raw": 0.27851,
+      "brier_calibrated": 0.21563,
+      "improves_brier": true
+    },
+    "EOS": {
+      "n_tr": 353,
+      "n_cal": 191,
+      "brier_baseline": 0.22282,
+      "brier_raw": 0.2111,
+      "brier_calibrated": 0.17722,
+      "improves_brier": true
+    }
+  },
+  "heuristic_score_eval": {
+    "note": "HEURISTIC SCORE, not validated probability. Evaluated on TEST set 1h horizon.",
+    "q50_1h_corr_with_actual_1h": 0.0044,
+    "q50_1h_da_strict": {
+      "da_pct": 61.17,
+      "label": "61.17%",
+      "n_total": 479,
+      "n_eval": 479,
+      "excluded_flat": 0,
+      "excluded_zero_y": 0
+    }
+  }
+}

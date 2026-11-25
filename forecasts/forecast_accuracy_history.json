@@ -1,0 +1,50 @@
+[
+  {
+    "id": "36679684",
+    "symbol": "XAUUSD",
+    "origin_utc": "2026-11-25T14:39:00+00:00",
+    "P0": 3461.11,
+    "forecast_close_q50": 3455.85,
+    "target_high": 3468.11,
+    "target_low": 3438.74,
+    "realized_bars": 261,
+    "total_bars": 360,
+    "mae_usd": 38.29,
+    "in_80_tunnel_pct": 55.6,
+    "direction_hit": "NO",
+    "high_hit": true,
+    "low_hit": true
+  },
+  {
+    "id": "264051ce",
+    "symbol": "XAUUSD",
+    "origin_utc": "2026-11-25T14:39:00+00:00",
+    "P0": 3461.11,
+    "forecast_close_q50": 3455.01,
+    "target_high": 3467.49,
+    "target_low": 3437.16,
+    "realized_bars": 261,
+    "total_bars": 360,
+    "mae_usd": 38.94,
+    "in_80_tunnel_pct": 56.3,
+    "direction_hit": "NO",
+    "high_hit": true,
+    "low_hit": true
+  },
+  {
+    "id": "fa25f376",
+    "symbol": "XAUUSD",
+    "origin_utc": "2026-11-25T17:42:00+00:00",
+    "P0": 3513.84,
+    "forecast_close_q50": 3501.74,
+    "target_high": 3519.71,
+    "target_low": 3498.18,
+    "realized_bars": 78,
+    "total_bars": 257,
+    "mae_usd": 18.89,
+    "in_80_tunnel_pct": 56.4,
+    "direction_hit": "NO",
+    "high_hit": true,
+    "low_hit": false
+  }
+]

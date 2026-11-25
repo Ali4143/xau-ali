@@ -1,0 +1,26 @@
+{
+  "symbol": "XAUUSD",
+  "trained_utc": "2026-11-25T16:21:08.679640+00:00",
+  "models_trained": [
+    "lightgbm",
+    "tcn",
+    "tft",
+    "wavelet_bilstm",
+    "timemixer",
+    "direction_meta",
+    "path_simulator"
+  ],
+  "weights": {
+    "lightgbm": 0.1779,
+    "tcn": 0.0,
+    "tft": 0.1268,
+    "wavelet_bilstm": 0.6035,
+    "timemixer": 0.0918
+  },
+  "use_wavelet": true,
+  "stride": 15,
+  "epochs": 12,
+  "train_samples": 2627,
+  "val_samples": 544,
+  "test_samples": 497
+}

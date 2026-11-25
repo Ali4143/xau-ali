@@ -1,0 +1,29 @@
+{
+  "name": "tcn",
+  "L": 120,
+  "F": 59,
+  "C_dim": 10,
+  "H": 360,
+  "seeds": [
+    11
+  ],
+  "hp": {
+    "filters": 32,
+    "kernel": 2,
+    "levels": 6,
+    "dense": 64,
+    "dropout": 0.25,
+    "lr": 0.002,
+    "batch": 64,
+    "weight_decay": 1e-05
+  },
+  "history": [
+    {
+      "seed": 11,
+      "epochs_run": 10,
+      "best_epoch": 2,
+      "best_val_loss": 0.5941228866577148
+    }
+  ],
+  "cpu_only": true
+}

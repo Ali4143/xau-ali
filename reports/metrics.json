@@ -1,0 +1,414 @@
+{
+  "deployment_gate": {
+    "verdict": "DEPLOYABLE",
+    "deployable": true,
+    "reason": "Ensemble beats NoChange on test MAE (skill +3.09%, HAC DM p=0.0164 < 0.05)"
+  },
+  "data_meta": {
+    "symbol": "XAUUSD",
+    "source": "dukascopy_bid",
+    "updated_utc": "2026-11-25T15:39:23.614212+00:00",
+    "m1_rows": 58899,
+    "m15_rows": 3927,
+    "start_utc": "2026-09-27 22:00:00+00:00",
+    "end_utc": "2026-11-25 14:39:00+00:00",
+    "fifo_retention_days": 548,
+    "fifo_dropped_rows": 0,
+    "real_volume_nonzero_rows": 0,
+    "real_volume_note": "Spot gold real_volume is 0; tick_volume is used as proxy"
+  },
+  "ensemble_weights": {
+    "lightgbm": 0.1779,
+    "tcn": 0.0,
+    "tft": 0.1268,
+    "wavelet_bilstm": 0.6035,
+    "timemixer": 0.0918
+  },
+  "models": [
+    {
+      "model": "no_change",
+      "test_samples": 497,
+      "pinball_loss": 0.58174,
+      "MAE_USD": 18.569,
+      "RMSE_USD": 25.356,
+      "coverage_80_pct": 79.61,
+      "DA_1h_pct": 61.59,
+      "DA_3h_pct": 67.35,
+      "DA_EOS_pct": 71.43,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.904,
+          "RMSE_USD": 5.708
+        },
+        "16-60": {
+          "MAE_USD": 8.624,
+          "RMSE_USD": 12.194
+        },
+        "61-180": {
+          "MAE_USD": 15.618,
+          "RMSE_USD": 21.016
+        },
+        "181-360": {
+          "MAE_USD": 25.229,
+          "RMSE_USD": 31.667
+        }
+      },
+      "trading_proxy_1h_gross_usd": 0.0,
+      "trading_proxy_1h_net_usd": -0.3
+    },
+    {
+      "model": "hist_profile",
+      "test_samples": 497,
+      "pinball_loss": 0.57288,
+      "MAE_USD": 18.395,
+      "RMSE_USD": 25.315,
+      "coverage_80_pct": 75.86,
+      "DA_1h_pct": 44.89,
+      "DA_3h_pct": 53.65,
+      "DA_EOS_pct": 50.7,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.92,
+          "RMSE_USD": 5.738
+        },
+        "16-60": {
+          "MAE_USD": 8.766,
+          "RMSE_USD": 12.397
+        },
+        "61-180": {
+          "MAE_USD": 15.865,
+          "RMSE_USD": 21.421
+        },
+        "181-360": {
+          "MAE_USD": 24.627,
+          "RMSE_USD": 31.368
+        }
+      },
+      "trading_proxy_1h_gross_usd": -1.5883,
+      "trading_proxy_1h_net_usd": -1.8883,
+      "skill_edge_vs_nochange_pct": 0.934,
+      "dm_hac": {
+        "dm_stat": 0.3506,
+        "p_value": 0.36294,
+        "p_two_sided": 0.72589,
+        "n": 497,
+        "lag": 14
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 0.1372,
+        "p_value": 0.44544,
+        "p_two_sided": 0.89088,
+        "n": 21,
+        "lag": 2
+      }
+    },
+    {
+      "model": "lightgbm",
+      "test_samples": 497,
+      "pinball_loss": 0.57637,
+      "MAE_USD": 18.105,
+      "RMSE_USD": 24.86,
+      "coverage_80_pct": 78.22,
+      "DA_1h_pct": 54.7,
+      "DA_3h_pct": 67.35,
+      "DA_EOS_pct": 71.03,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.896,
+          "RMSE_USD": 5.705
+        },
+        "16-60": {
+          "MAE_USD": 8.622,
+          "RMSE_USD": 12.188
+        },
+        "61-180": {
+          "MAE_USD": 15.432,
+          "RMSE_USD": 20.792
+        },
+        "181-360": {
+          "MAE_USD": 24.373,
+          "RMSE_USD": 30.924
+        }
+      },
+      "trading_proxy_1h_gross_usd": 1.4389,
+      "trading_proxy_1h_net_usd": 1.1389,
+      "skill_edge_vs_nochange_pct": 2.5,
+      "dm_hac": {
+        "dm_stat": 2.1424,
+        "p_value": 0.01608,
+        "p_two_sided": 0.03216,
+        "n": 497,
+        "lag": 14
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 0.915,
+        "p_value": 0.1801,
+        "p_two_sided": 0.3602,
+        "n": 21,
+        "lag": 2
+      }
+    },
+    {
+      "model": "tcn",
+      "test_samples": 497,
+      "pinball_loss": 0.57809,
+      "MAE_USD": 18.061,
+      "RMSE_USD": 24.795,
+      "coverage_80_pct": 82.59,
+      "DA_1h_pct": 56.16,
+      "DA_3h_pct": 67.12,
+      "DA_EOS_pct": 58.35,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 4.15,
+          "RMSE_USD": 5.982
+        },
+        "16-60": {
+          "MAE_USD": 8.698,
+          "RMSE_USD": 12.29
+        },
+        "61-180": {
+          "MAE_USD": 15.365,
+          "RMSE_USD": 20.758
+        },
+        "181-360": {
+          "MAE_USD": 24.28,
+          "RMSE_USD": 30.812
+        }
+      },
+      "trading_proxy_1h_gross_usd": 1.6891,
+      "trading_proxy_1h_net_usd": 1.3891,
+      "skill_edge_vs_nochange_pct": 2.735,
+      "dm_hac": {
+        "dm_stat": 1.6642,
+        "p_value": 0.04803,
+        "p_two_sided": 0.09607,
+        "n": 497,
+        "lag": 14
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 0.4945,
+        "p_value": 0.31049,
+        "p_two_sided": 0.62098,
+        "n": 21,
+        "lag": 2
+      }
+    },
+    {
+      "model": "tft",
+      "test_samples": 497,
+      "pinball_loss": 0.56159,
+      "MAE_USD": 17.721,
+      "RMSE_USD": 24.424,
+      "coverage_80_pct": 78.51,
+      "DA_1h_pct": 61.59,
+      "DA_3h_pct": 67.35,
+      "DA_EOS_pct": 56.54,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.971,
+          "RMSE_USD": 5.785
+        },
+        "16-60": {
+          "MAE_USD": 8.6,
+          "RMSE_USD": 12.197
+        },
+        "61-180": {
+          "MAE_USD": 15.198,
+          "RMSE_USD": 20.563
+        },
+        "181-360": {
+          "MAE_USD": 23.723,
+          "RMSE_USD": 30.284
+        }
+      },
+      "trading_proxy_1h_gross_usd": 3.0388,
+      "trading_proxy_1h_net_usd": 2.7388,
+      "skill_edge_vs_nochange_pct": 4.565,
+      "dm_hac": {
+        "dm_stat": 2.4287,
+        "p_value": 0.00758,
+        "p_two_sided": 0.01515,
+        "n": 497,
+        "lag": 14
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 1.5653,
+        "p_value": 0.05876,
+        "p_two_sided": 0.11751,
+        "n": 21,
+        "lag": 2
+      }
+    },
+    {
+      "model": "wavelet_bilstm",
+      "test_samples": 497,
+      "pinball_loss": 0.58649,
+      "MAE_USD": 17.836,
+      "RMSE_USD": 24.742,
+      "coverage_80_pct": 80.69,
+      "DA_1h_pct": 61.38,
+      "DA_3h_pct": 66.21,
+      "DA_EOS_pct": 58.55,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.907,
+          "RMSE_USD": 5.729
+        },
+        "16-60": {
+          "MAE_USD": 8.503,
+          "RMSE_USD": 12.114
+        },
+        "61-180": {
+          "MAE_USD": 14.985,
+          "RMSE_USD": 20.44
+        },
+        "181-360": {
+          "MAE_USD": 24.165,
+          "RMSE_USD": 30.905
+        }
+      },
+      "trading_proxy_1h_gross_usd": 2.9079,
+      "trading_proxy_1h_net_usd": 2.6079,
+      "skill_edge_vs_nochange_pct": 3.946,
+      "dm_hac": {
+        "dm_stat": 2.1261,
+        "p_value": 0.01675,
+        "p_two_sided": 0.03349,
+        "n": 497,
+        "lag": 14
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 0.7931,
+        "p_value": 0.21385,
+        "p_two_sided": 0.42771,
+        "n": 21,
+        "lag": 2
+      }
+    },
+    {
+      "model": "timemixer",
+      "test_samples": 497,
+      "pinball_loss": 0.70032,
+      "MAE_USD": 21.731,
+      "RMSE_USD": 29.013,
+      "coverage_80_pct": 72.56,
+      "DA_1h_pct": 40.08,
+      "DA_3h_pct": 45.43,
+      "DA_EOS_pct": 43.86,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 5.106,
+          "RMSE_USD": 6.977
+        },
+        "16-60": {
+          "MAE_USD": 9.913,
+          "RMSE_USD": 13.5
+        },
+        "61-180": {
+          "MAE_USD": 17.633,
+          "RMSE_USD": 23.141
+        },
+        "181-360": {
+          "MAE_USD": 30.007,
+          "RMSE_USD": 36.715
+        }
+      },
+      "trading_proxy_1h_gross_usd": -2.5737,
+      "trading_proxy_1h_net_usd": -2.8737,
+      "skill_edge_vs_nochange_pct": -17.029,
+      "dm_hac": {
+        "dm_stat": -4.003,
+        "p_value": 0.99997,
+        "p_two_sided": 6e-05,
+        "n": 497,
+        "lag": 14
+      },
+      "dm_non_overlapping": {
+        "dm_stat": -2.3049,
+        "p_value": 0.98941,
+        "p_two_sided": 0.02117,
+        "n": 21,
+        "lag": 2
+      }
+    },
+    {
+      "model": "ensemble",
+      "test_samples": 497,
+      "pinball_loss": 0.57841,
+      "MAE_USD": 17.995,
+      "RMSE_USD": 24.852,
+      "coverage_80_pct": 81.07,
+      "DA_1h_pct": 59.5,
+      "DA_3h_pct": 66.44,
+      "DA_EOS_pct": 54.12,
+      "horizon_buckets": {
+        "1-15": {
+          "MAE_USD": 3.91,
+          "RMSE_USD": 5.731
+        },
+        "16-60": {
+          "MAE_USD": 8.536,
+          "RMSE_USD": 12.138
+        },
+        "61-180": {
+          "MAE_USD": 15.127,
+          "RMSE_USD": 20.56
+        },
+        "181-360": {
+          "MAE_USD": 24.388,
+          "RMSE_USD": 31.031
+        }
+      },
+      "trading_proxy_1h_gross_usd": 2.5131,
+      "trading_proxy_1h_net_usd": 2.2131,
+      "skill_edge_vs_nochange_pct": 3.093,
+      "dm_hac": {
+        "dm_stat": 2.135,
+        "p_value": 0.01638,
+        "p_two_sided": 0.03276,
+        "n": 497,
+        "lag": 14
+      },
+      "dm_non_overlapping": {
+        "dm_stat": 0.9173,
+        "p_value": 0.1795,
+        "p_two_sided": 0.359,
+        "n": 21,
+        "lag": 2
+      }
+    }
+  ],
+  "target_high_low_eval": {
+    "n_evaluated": 497,
+    "target_high_reach_rate_pct": 24.55,
+    "target_low_reach_rate_pct": 64.99,
+    "full_range_containment_pct": 66.0
+  },
+  "direction_meta_brier": {
+    "1h": {
+      "n_tr": 341,
+      "n_cal": 185,
+      "brier_baseline": 0.25487,
+      "brier_raw": 0.27247,
+      "brier_calibrated": 0.2314,
+      "improves_brier": true
+    },
+    "3h": {
+      "n_tr": 309,
+      "n_cal": 169,
+      "brier_baseline": 0.24129,
+      "brier_raw": 0.27851,
+      "brier_calibrated": 0.21563,
+      "improves_brier": true
+    },
+    "EOS": {
+      "n_tr": 353,
+      "n_cal": 191,
+      "brier_baseline": 0.22282,
+      "brier_raw": 0.2111,
+      "brier_calibrated": 0.17722,
+      "improves_brier": true
+    }
+  }
+}
