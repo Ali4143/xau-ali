@@ -594,15 +594,16 @@ def _render_live_terminal_section() -> None:
             unsafe_allow_html=True,
         )
 
-    # Live Model Comparison & "Kis Par Bharosa Karein?" Strip (above chart)
-    if active_fc_l and not df_m1_l.empty and active_fc_l.get("times"):
-        fc_eng_lbl = str(active_fc_l.get("forecaster_engine") or "ensemble").upper()
-        p0_l = float(active_fc_l.get("P0", df_m1_l["close"].iloc[-1]))
+    # Live Model Comparison & "Kis Par Bharosa Karein?" Strip (above chart — tracks latest Taaza or Locked)
+    track_fc_l = live_refresh_fc_l or active_fc_l
+    if track_fc_l and not df_m1_l.empty and track_fc_l.get("times"):
+        fc_eng_lbl = str(track_fc_l.get("forecaster") or track_fc_l.get("forecaster_engine") or forecaster_choice or "tft").upper()
+        p0_l = float(track_fc_l.get("P0", df_m1_l["close"].iloc[-1]))
         p_now = float(df_m1_l["close"].iloc[-1])
         t_now_utc = pd.Timestamp(df_m1_l.index[-1])
         if t_now_utc.tzinfo is None:
             t_now_utc = t_now_utc.tz_localize("UTC")
-        fc_ts_utc = pd.to_datetime(active_fc_l["times"], utc=True)
+        fc_ts_utc = pd.to_datetime(track_fc_l["times"], utc=True)
         # Find nearest elapsed forecast index to current live candle
         diffs_sec = np.abs((fc_ts_utc - t_now_utc).total_seconds().to_numpy())
         cur_idx = int(np.argmin(diffs_sec)) if len(diffs_sec) else 0
@@ -610,7 +611,7 @@ def _render_live_terminal_section() -> None:
 
         rep_models = {str(r.get("model", "")).lower(): r for r in (rep_l or {}).get("models", [])}
         nc_mae = float((rep_models.get("no_change") or {}).get("MAE_USD") or 0.0)
-        mem_map = active_fc_l.get("member_q50") or {}
+        mem_map = track_fc_l.get("member_q50") or {}
         pills_html = []
         best_m_name, best_m_skill, best_m_da = "TFT", -999.0, 50.0
         live_status_by_m: dict[str, tuple[str, float]] = {}

@@ -185,7 +185,7 @@ def build_mtf_forecast_chart(
             col=1,
         )
 
-        fc_engine = str(active_fc.get("forecaster_engine") or "ensemble").upper()
+        fc_engine = str(active_fc.get("forecaster") or active_fc.get("forecaster_engine") or "ensemble").upper()
 
         # Solid Orange Locked Zig-Zag Plausible Path
         fig.add_trace(
@@ -268,7 +268,7 @@ def build_mtf_forecast_chart(
             o_lv = _ts_to_display(pd.Timestamp(live_refresh_fc["origin_utc"]), display_tz)
             t_lv = [o_lv] + list(_to_display_tz(pd.to_datetime(live_refresh_fc["times"], utc=True), display_tz))
             y_lv = [float(live_refresh_fc["P0"])] + list(live_refresh_fc.get("zigzag_path") or live_refresh_fc["q50"])
-            lv_engine = str(live_refresh_fc.get("forecaster_engine") or "ensemble").upper()
+            lv_engine = str(live_refresh_fc.get("forecaster") or live_refresh_fc.get("forecaster_engine") or "ensemble").upper()
             fig.add_trace(
                 go.Scatter(
                     x=t_lv,
