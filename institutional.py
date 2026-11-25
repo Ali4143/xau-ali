@@ -39,6 +39,186 @@ INST_FEATURE_COLS = [
 ]
 
 
+def detect_candle_patterns_and_ladder(
+    df_m1: pd.DataFrame,
+    inst_df: pd.DataFrame,
+    min_conf: float = 70.0,
+    cooldown_bars: int = 8,
+) -> dict[str, Any]:
+    """Causal candle-pattern detector (Doji, Hammer, Shooting Star, Engulfing, Impulse)
+    + strict >=70% confidence signal filter (de-clustered) + auto-stepping T1->T2->T3->T4->T5
+    dynamic target ladder with fast-momentum acceleration.
+    """
+    if df_m1 is None or len(df_m1) < 25 or inst_df is None or inst_df.empty:
+        return {"signals": [], "last_candle_pattern": "Normal", "active_ladder": None}
+
+    s = _ensure_utc_index(df_m1).tail(240)
+    ins = inst_df.reindex(s.index)
+    o = s["open"].to_numpy(dtype=np.float64)
+    h = s["high"].to_numpy(dtype=np.float64)
+    l = s["low"].to_numpy(dtype=np.float64)
+    c = s["close"].to_numpy(dtype=np.float64)
+    v = s["volume"].to_numpy(dtype=np.float64) if "volume" in s.columns else np.ones(len(s), dtype=np.float64)
+    v = np.maximum(v, 1.0)
+    atr = ins["_atr1m"].ffill().bfill().to_numpy(dtype=np.float64)
+    atr = np.maximum(atr, 0.25)
+    sw = ins["liq_sweep"].fillna(0.0).to_numpy(dtype=np.float64)
+    sw_dec = ins["liq_sweep_decay"].fillna(0.0).to_numpy(dtype=np.float64)
+    vsa = ins["vsa_absorption"].fillna(0.0).to_numpy(dtype=np.float64)
+    cvd = ins["cvd_20"].fillna(0.0).to_numpy(dtype=np.float64)
+    ema20 = pd.Series(c).ewm(span=20, adjust=False).mean().to_numpy(dtype=np.float64)
+    vol_ma = pd.Series(v).rolling(20, min_periods=5).mean().bfill().to_numpy(dtype=np.float64)
+    vol_rel = v / np.maximum(vol_ma, 1.0)
+
+    def _classify_bar(i: int) -> tuple[str, int, float]:
+        """Return (pattern_name, direction [+1/-1/0], base_score)."""
+        rng = max(h[i] - l[i], 1e-6)
+        body = abs(c[i] - o[i])
+        body_r = body / rng
+        up_w = (h[i] - max(o[i], c[i])) / rng
+        lo_w = (min(o[i], c[i]) - l[i]) / rng
+        is_bull = c[i] > o[i]
+        is_bear = c[i] < o[i]
+
+        # 1) Bullish / Bearish Engulfing (requires previous bar)
+        if i >= 1:
+            prev_bull = c[i - 1] > o[i - 1]
+            prev_bear = c[i - 1] < o[i - 1]
+            prev_body = abs(c[i - 1] - o[i - 1])
+            if prev_bear and is_bull and c[i] > o[i - 1] and o[i] <= c[i - 1] and body > prev_body * 1.05:
+                return ("Bull Engulfing", 1, 42.0)
+            if prev_bull and is_bear and c[i] < o[i - 1] and o[i] >= c[i - 1] and body > prev_body * 1.05:
+                return ("Bear Engulfing", -1, 42.0)
+
+        # 2) Doji variants
+        if body_r <= 0.14:
+            if lo_w >= 0.58:
+                return ("Dragonfly Doji", 1, 36.0)
+            if up_w >= 0.58:
+                return ("Gravestone Doji", -1, 36.0)
+            return ("Doji (Indecision)", 0, 0.0)
+
+        # 3) Hammer / Shooting Star (Pin Bars)
+        if body_r <= 0.36 and lo_w >= 0.56 and up_w <= 0.18:
+            return ("Hammer Pin Bar", 1, 40.0)
+        if body_r <= 0.36 and up_w >= 0.56 and lo_w <= 0.18:
+            return ("Shooting Star", -1, 40.0)
+
+        # 4) Strong Institutional Momentum Marubozu
+        if body_r >= 0.72 and rng >= 1.25 * atr[i]:
+            return ("Strong Bull Impulse", 1, 38.0) if is_bull else ("Strong Bear Impulse", -1, 38.0)
+
+        # 5) Inside Bar
+        if i >= 1 and h[i] <= h[i - 1] and l[i] >= l[i - 1]:
+            return ("Inside Bar", 0, 0.0)
+
+        return ("Bull Candle" if is_bull else "Bear Candle", 0, 0.0)
+
+    signals: list[dict[str, Any]] = []
+    last_sig_i = -999
+    last_bar_pat = "Normal"
+
+    for i in range(1, len(s)):
+        pat_name, p_dir, base_sc = _classify_bar(i)
+        if i == len(s) - 1:
+            last_bar_pat = pat_name
+        if p_dir == 0 or base_sc <= 0.0:
+            continue
+
+        # Institutional confluence score (strictly causal at bar i)
+        conf = base_sc
+        has_sweep = (sw[i] * p_dir > 0.5) or (sw_dec[i] * p_dir > 0.18)
+        if has_sweep:
+            conf += 22.0
+        if vol_rel[i] >= 1.35:
+            conf += 14.0
+        elif vol_rel[i] >= 1.15:
+            conf += 7.0
+        if vsa[i] * p_dir > 0.5:
+            conf += 12.0
+        if cvd[i] * p_dir > 0.12:
+            conf += 10.0
+        if (p_dir == 1 and c[i] >= ema20[i]) or (p_dir == -1 and c[i] <= ema20[i]):
+            conf += 8.0
+
+        conf = min(96.0, round(conf, 1))
+        if conf >= min_conf and (i - last_sig_i) >= cooldown_bars:
+            last_sig_i = i
+            signals.append(
+                {
+                    "idx": i,
+                    "time_utc": s.index[i],
+                    "price": float(c[i]),
+                    "low": float(l[i]),
+                    "high": float(h[i]),
+                    "dir": p_dir,
+                    "pattern": pat_name + (" + Sweep" if has_sweep else ""),
+                    "confidence": conf,
+                    "atr": float(atr[i]),
+                }
+            )
+
+    # Build Dynamic Auto-Stepping Target Ladder (T1 -> T2 -> T3 -> T4 -> T5) from latest >=70% signal
+    active_ladder = None
+    if signals:
+        latest = signals[-1]
+        age_bars = (len(s) - 1) - latest["idx"]
+        if age_bars <= 65:
+            p_sig = latest["price"]
+            d = latest["dir"]
+            step = round(max(2.2 * latest["atr"], 2.20), 2)
+            levels_t = {k: round(p_sig + d * k * step, 2) for k in range(1, 6)}
+            inval_px = round(p_sig - d * 1.6 * step, 2)
+
+            # Walk forward strictly through realized bars after signal
+            highest_hit = 0
+            invalidated = False
+            for j in range(latest["idx"] + 1, len(s)):
+                if (d == 1 and l[j] <= inval_px) or (d == -1 and h[j] >= inval_px):
+                    invalidated = True
+                    break
+                for k in range(1, 6):
+                    if (d == 1 and h[j] >= levels_t[k]) or (d == -1 and l[j] <= levels_t[k]):
+                        highest_hit = max(highest_hit, k)
+
+            if not invalidated:
+                # Check fast momentum acceleration over last 3 closed candles
+                mom3 = d * (c[-1] - c[-4]) if len(c) >= 4 else 0.0
+                fast_accel = mom3 >= 1.8 * atr[-1]
+                base_next = min(5, highest_hit + 1)
+                active_k = min(5, max(base_next, highest_hit + 2, 3)) if fast_accel else base_next
+                active_ladder = {
+                    "signal_time_utc": latest["time_utc"].isoformat(),
+                    "pattern": latest["pattern"],
+                    "confidence": latest["confidence"],
+                    "dir": d,
+                    "side_label": "LONG ▲" if d == 1 else "SHORT ▼",
+                    "entry_price": round(p_sig, 2),
+                    "invalidation_price": inval_px,
+                    "step_usd": step,
+                    "targets": levels_t,
+                    "highest_hit": highest_hit,
+                    "active_target_num": active_k,
+                    "active_target_price": levels_t[active_k],
+                    "fast_momentum": bool(fast_accel),
+                    "status_text": (
+                        f"🚀 FAST MOMENTUM — Auto-Extended to T{active_k} (${levels_t[active_k]:,.2f})"
+                        if fast_accel
+                        else (
+                            f"✅ T{highest_hit} Hit → Next: T{active_k} (${levels_t[active_k]:,.2f})"
+                            if highest_hit > 0
+                            else f"🎯 Active T1 (${levels_t[1]:,.2f}) · T2 (${levels_t[2]:,.2f})"
+                        )
+                    ),
+                }
+
+    return {
+        "signals": signals,
+        "last_candle_pattern": last_bar_pat,
+        "active_ladder": active_ladder,
+    }
+
+
 def _ensure_utc_index(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
@@ -449,4 +629,5 @@ def build_institutional_summary(
             "London_L": round(float(last["_london_lo"]), 2),
         },
         "inst_tail": inst_df.tail(240),
+        "patterns": detect_candle_patterns_and_ladder(df_m1, inst_df, min_conf=70.0, cooldown_bars=8),
     }

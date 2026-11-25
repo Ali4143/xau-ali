@@ -52,6 +52,7 @@ def build_mtf_forecast_chart(
     show_m15_bg: bool = False,
     show_rsi_pane: bool = False,
     show_liquidity: bool = True,
+    num_targets: int = 1,
     inst_summary: Optional[dict] = None,
     history_minutes: int = 30,
     display_tz: str = "UTC",
@@ -283,48 +284,94 @@ def build_mtf_forecast_chart(
             )
             ys += [float(min(y_lv)), float(max(y_lv))]
 
-        # Target High & Target Low Lines (use live Taaza's fresh targets when Taaza is active, else Locked targets)
+        # Target High & Target Low Lines (T1 default; optional T2 extended q90/q10 when num_targets == 2)
         tgt_src = live_refresh_fc if (live_refresh_fc and live_refresh_fc.get("target_high")) else active_fc
         th = tgt_src.get("target_high")
         tl = tgt_src.get("target_low")
+        t_dict = tgt_src.get("targets") or {}
+        th2 = (t_dict.get("day_high") or [None, None, None])[2] if num_targets >= 2 else None
+        tl2 = (t_dict.get("day_low") or [None, None, None])[0] if num_targets >= 2 else None
+
         if th is not None:
             ys.append(float(th))
+            t1h_lbl = "T1 High" if num_targets >= 2 else "Target High"
             fig.add_trace(
                 go.Scatter(
                     x=[x_start, x_end],
                     y=[th, th],
                     mode="lines",
-                    name=f"🎯 Target High: {th:,.2f}",
+                    name=f"🎯 {t1h_lbl}: {th:,.2f}",
                     line=dict(color=CYAN_HI, width=1.2, dash="dashdot"),
-                    hovertemplate=f"Target High: ${th:,.2f}<extra></extra>",
+                    hovertemplate=f"{t1h_lbl}: ${th:,.2f}<extra></extra>",
                 ),
                 row=1,
                 col=1,
             )
             fig.add_annotation(
                 x=x_start, y=th, xref="x", yref="y",
-                text=f"🎯 Target High {th:,.2f}", showarrow=False,
+                text=f"🎯 {t1h_lbl} {th:,.2f}", showarrow=False,
                 xanchor="left", yanchor="bottom", font=dict(size=10, color=CYAN_HI),
+                row=1, col=1,
+            )
+        if th2 is not None and np.isfinite(th2):
+            ys.append(float(th2))
+            fig.add_trace(
+                go.Scatter(
+                    x=[x_start, x_end],
+                    y=[th2, th2],
+                    mode="lines",
+                    name=f"🎯 T2 High (Ext): {th2:,.2f}",
+                    line=dict(color="#10B981", width=1.0, dash="dot"),
+                    hovertemplate=f"T2 High (Extended q90): ${th2:,.2f}<extra></extra>",
+                ),
+                row=1,
+                col=1,
+            )
+            fig.add_annotation(
+                x=x_start, y=th2, xref="x", yref="y",
+                text=f"🎯 T2 High {th2:,.2f}", showarrow=False,
+                xanchor="left", yanchor="bottom", font=dict(size=10, color="#10B981"),
                 row=1, col=1,
             )
         if tl is not None:
             ys.append(float(tl))
+            t1l_lbl = "T1 Low" if num_targets >= 2 else "Target Low"
             fig.add_trace(
                 go.Scatter(
                     x=[x_start, x_end],
                     y=[tl, tl],
                     mode="lines",
-                    name=f"🎯 Target Low: {tl:,.2f}",
+                    name=f"🎯 {t1l_lbl}: {tl:,.2f}",
                     line=dict(color=RED_LO, width=1.2, dash="dashdot"),
-                    hovertemplate=f"Target Low: ${tl:,.2f}<extra></extra>",
+                    hovertemplate=f"{t1l_lbl}: ${tl:,.2f}<extra></extra>",
                 ),
                 row=1,
                 col=1,
             )
             fig.add_annotation(
                 x=x_start, y=tl, xref="x", yref="y",
-                text=f"🎯 Target Low {tl:,.2f}", showarrow=False,
+                text=f"🎯 {t1l_lbl} {tl:,.2f}", showarrow=False,
                 xanchor="left", yanchor="bottom", font=dict(size=10, color=RED_LO),
+                row=1, col=1,
+            )
+        if tl2 is not None and np.isfinite(tl2):
+            ys.append(float(tl2))
+            fig.add_trace(
+                go.Scatter(
+                    x=[x_start, x_end],
+                    y=[tl2, tl2],
+                    mode="lines",
+                    name=f"🎯 T2 Low (Ext): {tl2:,.2f}",
+                    line=dict(color="#FB7185", width=1.0, dash="dot"),
+                    hovertemplate=f"T2 Low (Extended q10): ${tl2:,.2f}<extra></extra>",
+                ),
+                row=1,
+                col=1,
+            )
+            fig.add_annotation(
+                x=x_start, y=tl2, xref="x", yref="y",
+                text=f"🎯 T2 Low {tl2:,.2f}", showarrow=False,
+                xanchor="left", yanchor="bottom", font=dict(size=10, color="#FB7185"),
                 row=1, col=1,
             )
 
@@ -395,36 +442,67 @@ def build_mtf_forecast_chart(
                         row=1, col=1,
                     )
 
-            inst_tail = inst_summary.get("inst_tail")
-            if isinstance(inst_tail, pd.DataFrame) and not inst_tail.empty and not m1_view.empty:
-                sw_view = inst_tail.reindex(m1_view.index)["liq_sweep"].fillna(0.0)
-                bull_m = sw_view > 0.5
-                bear_m = sw_view < -0.5
-                if bull_m.any():
+            # High-Conviction (>=70% Confidence) Candle Pattern Signals (de-clustered, no spam!)
+            pat_info = inst_summary.get("patterns") or {}
+            sigs = pat_info.get("signals") or []
+            if sigs and not m1_view.empty:
+                v_start = m1_view.index.min()
+                bull_s = [sg for sg in sigs if sg["dir"] == 1 and sg["time_utc"] >= v_start]
+                bear_s = [sg for sg in sigs if sg["dir"] == -1 and sg["time_utc"] >= v_start]
+                if bull_s:
                     fig.add_trace(
                         go.Scatter(
-                            x=_to_display_tz(m1_view.index[bull_m], display_tz),
-                            y=m1_view.loc[bull_m, "low"] - 0.6,
+                            x=[_ts_to_display(sg["time_utc"], display_tz) for sg in bull_s],
+                            y=[sg["low"] - 0.8 for sg in bull_s],
                             mode="markers",
-                            name="⚡ Bull Stop-Hunt Sweep",
-                            marker=dict(symbol="triangle-up", size=9, color="#34D399", line=dict(color="#FFFFFF", width=0.7)),
-                            hovertemplate="%{x|%H:%M}<br>⚡ Bull Liquidity Sweep<extra></extra>",
+                            name="▲ High-Conf Bull Signal (≥70%)",
+                            marker=dict(symbol="triangle-up", size=11, color="#34D399", line=dict(color="#FFFFFF", width=1.0)),
+                            text=[f"▲ {sg['pattern']} ({sg['confidence']:.0f}%)" for sg in bull_s],
+                            hovertemplate="%{x|%H:%M}<br><b>%{text}</b><extra></extra>",
                         ),
                         row=1,
                         col=1,
                     )
-                if bear_m.any():
+                if bear_s:
                     fig.add_trace(
                         go.Scatter(
-                            x=_to_display_tz(m1_view.index[bear_m], display_tz),
-                            y=m1_view.loc[bear_m, "high"] + 0.6,
+                            x=[_ts_to_display(sg["time_utc"], display_tz) for sg in bear_s],
+                            y=[sg["high"] + 0.8 for sg in bear_s],
                             mode="markers",
-                            name="⚡ Bear Stop-Hunt Sweep",
-                            marker=dict(symbol="triangle-down", size=9, color="#F87171", line=dict(color="#FFFFFF", width=0.7)),
-                            hovertemplate="%{x|%H:%M}<br>⚡ Bear Liquidity Sweep<extra></extra>",
+                            name="▼ High-Conf Bear Signal (≥70%)",
+                            marker=dict(symbol="triangle-down", size=11, color="#F87171", line=dict(color="#FFFFFF", width=1.0)),
+                            text=[f"▼ {sg['pattern']} ({sg['confidence']:.0f}%)" for sg in bear_s],
+                            hovertemplate="%{x|%H:%M}<br><b>%{text}</b><extra></extra>",
                         ),
                         row=1,
                         col=1,
+                    )
+
+            # Active Pattern Dynamic Next Target Line (T1 -> T2 -> T3 -> T4 -> T5)
+            lad = pat_info.get("active_ladder")
+            if lad and lad.get("active_target_price") is not None:
+                at_px = float(lad["active_target_price"])
+                at_k = int(lad["active_target_num"])
+                at_col = "#FACC15" if lad.get("fast_momentum") else ("#34D399" if lad["dir"] == 1 else "#F87171")
+                at_tag = f"🚀 Fast T{at_k}" if lad.get("fast_momentum") else f"⚡ Pattern Next T{at_k}"
+                if (y_lo_ref - 25.0) <= at_px <= (y_hi_ref + 25.0):
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[_ts_to_display(pd.Timestamp(lad["signal_time_utc"]), display_tz), x_end],
+                            y=[at_px, at_px],
+                            mode="lines",
+                            name=f"{at_tag}: {at_px:,.2f}",
+                            line=dict(color=at_col, width=1.6, dash="dot"),
+                            hovertemplate=f"{at_tag} ({lad['pattern']} {lad['confidence']:.0f}%): ${at_px:,.2f}<extra></extra>",
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_annotation(
+                        x=x_end, y=at_px, xref="x", yref="y",
+                        text=f"{at_tag} {at_px:,.2f}", showarrow=False,
+                        xanchor="right", yanchor="bottom", font=dict(size=10, color=at_col),
+                        row=1, col=1,
                     )
 
         # Vertical Origin Lock Line & Top Annotation (Exact KSE-100 style)

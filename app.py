@@ -343,9 +343,15 @@ display_tz = st.sidebar.selectbox(
     index=0,
     format_func=lambda z: "UTC (Session Standard)" if z == "UTC" else ("PKT (UTC+5)" if z == "Asia/Karachi" else z),
 )
+num_targets = st.sidebar.selectbox(
+    "🎯 Target High / Low Levels",
+    [1, 2],
+    index=0,
+    format_func=lambda n: "1 Target (Default · T1)" if n == 1 else "2 Targets (T1 + T2 Extended)",
+)
 show_m15_bg = st.sidebar.checkbox("Overlay 15M Candles", value=False)
 show_rsi_pane = st.sidebar.checkbox("Show Lower RSI(14) Pane", value=False)
-show_liquidity = st.sidebar.checkbox("🏦 Show Liquidity Pools & Sweeps", value=True)
+show_liquidity = st.sidebar.checkbox("🏦 Show Liquidity Pools & 70%+ Signals", value=True)
 st.sidebar.caption("Individual Model Overlays (Default: Ensemble only):")
 show_members = [m_key for m_key in CORE_MODEL_CLASSES if st.sidebar.checkbox(m_key.upper(), value=False, key=f"chk_{m_key}")]
 
@@ -717,6 +723,19 @@ def _render_live_terminal_section() -> None:
                 else f"No Active Setup (ATR15: ${inst_sum['atr15']:.2f} · Suggested 1:2 RR = ±${inst_sum['sl_dist']:.2f} / ±${inst_sum['tp_dist']:.2f})"
             )
             lvls = inst_sum.get("levels") or {}
+            pat_d = inst_sum.get("patterns") or {}
+            last_pat = pat_d.get("last_candle_pattern", "Normal")
+            lad = pat_d.get("active_ladder")
+            if lad:
+                t_lvls = lad.get("targets") or {}
+                lad_html = (
+                    f"<b style='color:{'#34D399' if lad['dir']==1 else '#F87171'};'>{lad['side_label']} {lad['pattern']} ({lad['confidence']:.0f}%)</b> "
+                    f"· <b style='color:#FACC15;'>{lad['status_text']}</b> "
+                    f"<span style='color:#94A3B8;'>[T1: ${t_lvls.get(1,0):,.2f} · T2: ${t_lvls.get(2,0):,.2f} · T3: ${t_lvls.get(3,0):,.2f} · T4: ${t_lvls.get(4,0):,.2f} · T5: ${t_lvls.get(5,0):,.2f}]</span>"
+                )
+            else:
+                lad_html = "<span style='color:#94A3B8;'>No ≥70% Pattern Active — waiting for clean candle setup (Doji / Hammer / Engulfing + Sweep)</span>"
+
             st.markdown(
                 f"""<div style="background:#0A101E;border:1px solid #1E293B;border-radius:8px;padding:8px 12px;margin:0 0 8px 0;">
                 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
@@ -732,6 +751,9 @@ def _render_live_terminal_section() -> None:
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:5px;">
                     {"".join(macro_pills)}
                     <span style="background:#0D1526;border:1px solid #334155;border-radius:6px;padding:2px 8px;font-size:11px;color:#E2E8F0;"><b>SMT:</b> {inst_sum['smt_status']}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#E2E8F0;margin-bottom:5px;padding-top:4px;border-top:1px solid #162033;">
+                    <span>🕯️ <b>Last Candle:</b> <b style="color:#38BDF8;">{last_pat}</b> &nbsp;|&nbsp; ⚡ <b>70%+ Pattern Ladder:</b> {lad_html}</span>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#94A3B8;">
                     <span>🎯 <b>1:2 RR Plan:</b> <span style="color:#E2E8F0;">{rr_txt}</span></span>
@@ -753,6 +775,7 @@ def _render_live_terminal_section() -> None:
             show_m15_bg=show_m15_bg,
             show_rsi_pane=show_rsi_pane,
             show_liquidity=show_liquidity,
+            num_targets=num_targets,
             inst_summary=inst_sum,
             history_minutes=history_minutes,
             display_tz=display_tz,
