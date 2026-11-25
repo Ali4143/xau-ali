@@ -183,15 +183,17 @@ def build_mtf_forecast_chart(
             col=1,
         )
 
+        fc_engine = str(active_fc.get("forecaster_engine") or "ensemble").upper()
+
         # Solid Orange Locked Zig-Zag Plausible Path
         fig.add_trace(
             go.Scatter(
                 x=t_fc,
                 y=zz,
                 mode="lines",
-                name=f"✅ Locked 6H Plausible Path — fix {origin_disp:%H:%M} ({tz_label})",
+                name=f"✅ Locked 6H Zig-Zag [{fc_engine}] — fix {origin_disp:%H:%M} ({tz_label})",
                 line=dict(color=ORANGE_LOCK, width=2.5),
-                hovertemplate="%{x|%H:%M}<br>Plausible Path: $%{y:,.2f}<extra></extra>",
+                hovertemplate=f"%{{x|%H:%M}}<br>Locked [{fc_engine}] Zig-Zag: $%{{y:,.2f}}<extra></extra>",
             ),
             row=1,
             col=1,
@@ -251,9 +253,9 @@ def build_mtf_forecast_chart(
                         x=t_fc,
                         y=[P0] + list(members[m_name]),
                         mode="lines",
-                        name=f"Model: {m_name.upper()}",
+                        name=f"Model: {m_name.upper()} (raw q50)",
                         line=dict(color=MEMBER_COLORS.get(m_name, "#94A3B8"), width=1.4, dash="dot"),
-                        hovertemplate=f"{m_name.upper()}: $%{{y:,.2f}}<extra></extra>",
+                        hovertemplate=f"{m_name.upper()} raw q50: $%{{y:,.2f}}<extra></extra>",
                     ),
                     row=1,
                     col=1,
@@ -264,14 +266,15 @@ def build_mtf_forecast_chart(
             o_lv = _ts_to_display(pd.Timestamp(live_refresh_fc["origin_utc"]), display_tz)
             t_lv = [o_lv] + list(_to_display_tz(pd.to_datetime(live_refresh_fc["times"], utc=True), display_tz))
             y_lv = [float(live_refresh_fc["P0"])] + list(live_refresh_fc.get("zigzag_path") or live_refresh_fc["q50"])
+            lv_engine = str(live_refresh_fc.get("forecaster_engine") or "ensemble").upper()
             fig.add_trace(
                 go.Scatter(
                     x=t_lv,
                     y=y_lv,
                     mode="lines",
-                    name=f"🔄 Taaza live forecast ({o_lv:%H:%M} → End)",
+                    name=f"🔄 Taaza live [{lv_engine}] ({o_lv:%H:%M} → End)",
                     line=dict(color=WHITE_LIVE, width=2.0, dash="dash"),
-                    hovertemplate="%{x|%H:%M}<br>Taaza: $%{y:,.2f}<extra></extra>",
+                    hovertemplate=f"%{{x|%H:%M}}<br>Taaza [{lv_engine}]: $%{{y:,.2f}}<extra></extra>",
                 ),
                 row=1,
                 col=1,
@@ -358,7 +361,7 @@ def build_mtf_forecast_chart(
         fig.add_vline(x=origin_disp, line=dict(color="#5A6270", width=1, dash="dash"), row=1, col=1)
         fig.add_annotation(
             x=origin_disp, y=1.0, yref="y domain", yanchor="bottom", xanchor="left",
-            text=f"✅ Forecast locked {origin_disp:%H:%M} ({tz_label})",
+            text=f"✅ Forecast locked {origin_disp:%H:%M} ({tz_label}) · [{fc_engine}]",
             showarrow=False, font=dict(size=10, color="#E2E8F0"),
         )
         if active_fc.get("stopped_at_market_close"):

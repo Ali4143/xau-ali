@@ -585,6 +585,88 @@ def _render_live_terminal_section() -> None:
             unsafe_allow_html=True,
         )
 
+    # Live Model Comparison & "Kis Par Bharosa Karein?" Strip (above chart)
+    if active_fc_l and not df_m1_l.empty and active_fc_l.get("times"):
+        fc_eng_lbl = str(active_fc_l.get("forecaster_engine") or "ensemble").upper()
+        p0_l = float(active_fc_l.get("P0", df_m1_l["close"].iloc[-1]))
+        p_now = float(df_m1_l["close"].iloc[-1])
+        t_now_utc = pd.Timestamp(df_m1_l.index[-1])
+        if t_now_utc.tzinfo is None:
+            t_now_utc = t_now_utc.tz_localize("UTC")
+        fc_ts_utc = pd.to_datetime(active_fc_l["times"], utc=True)
+        # Find nearest elapsed forecast index to current live candle
+        diffs_sec = np.abs((fc_ts_utc - t_now_utc).total_seconds().to_numpy())
+        cur_idx = int(np.argmin(diffs_sec)) if len(diffs_sec) else 0
+        actual_dir = 1 if (p_now - p0_l) > 0.15 else (-1 if (p_now - p0_l) < -0.15 else 0)
+
+        rep_models = {str(r.get("model", "")).lower(): r for r in (rep_l or {}).get("models", [])}
+        mem_map = active_fc_l.get("member_q50") or {}
+        pills_html = []
+        best_m_name, best_m_skill, best_m_da = "TFT", 0.0, 50.0
+        live_status_by_m: dict[str, tuple[str, float]] = {}
+
+        for m_k in ("tft", "lgb", "tcn", "wavelet_bilstm", "timemixer"):
+            rm = rep_models.get(m_k, {})
+            da3 = rm.get("DA_3h")
+            sk = rm.get("Skill_MAE_pct")
+            da_s = f"{float(da3)*100:.1f}%" if da3 is not None else "N/A"
+            sk_s = f"{float(sk):+.2f}%" if sk is not None else "N/A"
+            if sk is not None and float(sk) > best_m_skill:
+                best_m_skill = float(sk)
+                best_m_name = m_k.upper()
+                best_m_da = float(da3) * 100.0 if da3 is not None else 50.0
+
+            arr = mem_map.get(m_k)
+            if arr and cur_idx < len(arr):
+                p_pred = float(arr[cur_idx])
+                err_now = abs(p_pred - p_now)
+                p_dir = 1 if (p_pred - p0_l) > 0.15 else (-1 if (p_pred - p0_l) < -0.15 else 0)
+                if actual_dir == 0 or p_dir == 0:
+                    st_ico, st_col = "➖", "#94A3B8"
+                elif p_dir == actual_dir:
+                    st_ico, st_col = "✅", "#34D399"
+                else:
+                    st_ico, st_col = "⚠️", "#F87171"
+                live_status_by_m[m_k.upper()] = (st_ico, err_now)
+                err_txt = f"Live err ${err_now:.2f}"
+            else:
+                st_ico, st_col = "•", "#94A3B8"
+                err_txt = "—"
+
+            is_best = m_k.upper() == best_m_name
+            bdr = "1px solid #34D399" if is_best else "1px solid #1E293B"
+            bg = "rgba(16,185,129,0.12)" if is_best else "#0D1526"
+            pills_html.append(
+                f'<span style="background:{bg};border:{bdr};border-radius:6px;padding:3px 8px;font-size:11px;color:#E2E8F0;">'
+                f'<b style="color:{st_col};">{st_ico} {m_k.upper()}</b> '
+                f'<span style="color:#94A3B8;">1Y DA:</span><b>{da_s}</b> '
+                f'<span style="color:#94A3B8;">Skill:</span><b>{sk_s}</b> '
+                f'<span style="color:#64748B;">· {err_txt}</span></span>'
+            )
+
+        b_ico, b_err = live_status_by_m.get(best_m_name, ("•", 0.0))
+        if b_ico == "✅":
+            trust_note = f"🟢 {best_m_name} Live Candles ke saath ALIGNED hai (err ${b_err:.2f}) — Primary Bias & Targets isi par dekhein"
+        elif b_ico == "⚠️":
+            trust_note = f"🟡 {best_m_name} abhi live candle se thoda diverging hai (err ${b_err:.2f}) — Candle confirmation ka intezar karein"
+        else:
+            trust_note = f"🔵 {best_m_name} 1-Year Best Model hai (3h DA {best_m_da:.1f}%, Skill {best_m_skill:+.2f}%) — Live move monitor ho rahi hai"
+
+        st.markdown(
+            f"""<div style="background:#0B1220;border:1px solid #1E293B;border-radius:8px;padding:8px 12px;margin:6px 0 8px 0;">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+                <span style="font-size:12px;color:#F8FAFC;">
+                    🟠 <b>Active Orange/White Line:</b> <b style="color:#F97316;">{fc_eng_lbl} (Real Zig-Zag)</b>
+                    &nbsp;|&nbsp; 🏆 <b>Kis Par Bharosa Karein?</b> <b style="color:#34D399;">{best_m_name}</b>
+                    <span style="color:#CBD5E1;">({trust_note})</span>
+                </span>
+                <span style="font-size:11px;color:#94A3B8;">Research Output · 1Y Best DA ~{best_m_da:.1f}% (confirmation zaroori)</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">{"".join(pills_html)}</div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
     # Full-Screen Interactive Forecast Chart
     if not df_m1_l.empty:
         fig = build_mtf_forecast_chart(
