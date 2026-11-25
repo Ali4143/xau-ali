@@ -628,3 +628,70 @@ def compute_diagnostics(history: list[dict[str, Any]]) -> dict[str, Any]:
         "by_exit": by_exit,
         "insights": insights,
     }
+
+
+META_LEARNER_FILE = PAPER_DIR / "bot_meta_learner.joblib"
+META_LEARNER_REPORT_FILE = PAPER_DIR / "bot_meta_learner_report.json"
+
+
+def train_bot_meta_learner(min_trades: int = 30) -> dict[str, Any]:
+    """Train a strictly chronological Meta-Labeling classifier on closed Paper Bot trades.
+
+    Learns P(WIN) from trade context (Track, Regime, Confidence, VPIN, CVD, Macro Bias, Session)
+    and evaluates strictly on the last 30% out-of-sample trades (never overfits on < 30 trades).
+    """
+    hist = load_trade_history(limit=2000)
+    if len(hist) < min_trades:
+        return {
+            "ok": False,
+            "reason": f"Need at least {min_trades} closed trades to train Meta-Learner safely (currently {len(hist)}).",
+        }
+
+    import joblib
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+
+    df = pd.DataFrame(hist)
+    y = (df["net_pnl_usd"].astype(float) > 0).astype(int).to_numpy()
+    if len(np.unique(y)) < 2:
+        return {"ok": False, "reason": "Need both winning and losing trades before Meta-Learner can train."}
+
+    feat = pd.DataFrame(
+        {
+            "is_6h": (df.get("track", "") == "6H_FIX").astype(float),
+            "is_long": (df.get("side", "") == "LONG").astype(float),
+            "conf": pd.to_numeric(df.get("confidence_pct", 65.0), errors="coerce").fillna(65.0),
+            "is_trend": df.get("regime_at_entry", "").astype(str).str.contains("TREND").astype(float),
+            "is_chop": df.get("regime_at_entry", "").astype(str).str.contains("CHOP").astype(float),
+            "vpin": pd.to_numeric(df.get("vpin_proxy", 0.5), errors="coerce").fillna(0.5),
+            "cvd": pd.to_numeric(df.get("cvd_20", 0.0), errors="coerce").fillna(0.0),
+            "macro": pd.to_numeric(df.get("macro_bias_score", 0.0), errors="coerce").fillna(0.0),
+            "is_london": (df.get("session", "") == "LONDON").astype(float),
+            "is_ny": (df.get("session", "") == "NEW_YORK").astype(float),
+        }
+    )
+    X = feat.to_numpy(dtype=np.float64)
+    split = max(int(len(X) * 0.70), 20)
+    X_tr, y_tr = X[:split], y[:split]
+    X_te, y_te = X[split:], y[split:]
+
+    sc = StandardScaler().fit(X_tr)
+    clf = LogisticRegression(C=0.5, max_iter=500).fit(sc.transform(X_tr), y_tr)
+    p_te = clf.predict_proba(sc.transform(X_te))[:, 1]
+    base_wr = float(y_te.mean() * 100.0)
+    filt_mask = p_te >= 0.52
+    filt_wr = float(y_te[filt_mask].mean() * 100.0) if filt_mask.any() else 0.0
+
+    joblib.dump({"scaler": sc, "clf": clf, "cols": list(feat.columns)}, META_LEARNER_FILE)
+    rep = {
+        "ok": True,
+        "trained_utc": _now_utc().isoformat(),
+        "total_trades": int(len(X)),
+        "train_trades": int(len(X_tr)),
+        "test_trades": int(len(X_te)),
+        "test_base_win_rate_pct": round(base_wr, 1),
+        "test_filtered_win_rate_pct": round(filt_wr, 1),
+        "test_trades_kept": int(filt_mask.sum()),
+    }
+    META_LEARNER_REPORT_FILE.write_text(json.dumps(rep, indent=2), encoding="utf-8")
+    return rep

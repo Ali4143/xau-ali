@@ -1028,6 +1028,50 @@ with tab_bot:
     for ins in diag.get("insights", []):
         st.markdown(f"- {ins}")
 
+    # 🧠 Bot Self-Learning (Meta-Labeling) Readiness & Training Box
+    from xau_mtf.paper_bot import META_LEARNER_REPORT_FILE, train_bot_meta_learner
+
+    n_closed_tr = int(diag.get("total_trades", 0))
+    min_req_tr = 30
+    with st.container(border=True):
+        ml_c1, ml_c2 = st.columns([3.5, 1.5])
+        with ml_c1:
+            st.markdown(
+                f"**🧠 Next Upgrade — Bot Self-Learning (Meta-Labeling Filter): `{n_closed_tr} / {min_req_tr}` Closed Trades**"
+            )
+            st.progress(min(1.0, n_closed_tr / float(min_req_tr)))
+            st.caption(
+                "Jab **30+ asli paper trades** collect ho jayengi, to hum **Bot Meta-Learner** train karenge jo har trade ke "
+                "`Regime (Trend/Chop)`, `Candle Pattern`, `VPIN/CVD`, `DXY/Silver Macro`, `Session`, aur `Track (6H vs 15m)` se "
+                "seekhega: **`P(WIN) < 52% → SKIP`**, **`52–64% → 0.01 lot`**, **`65%+ → 0.05/0.10 heavy lot`**!"
+            )
+            if META_LEARNER_REPORT_FILE.exists():
+                try:
+                    ml_rep = json.loads(META_LEARNER_REPORT_FILE.read_text(encoding="utf-8"))
+                    if ml_rep.get("ok"):
+                        st.success(
+                            f"✅ Meta-Learner Trained ({ml_rep['total_trades']} trades): Out-of-Sample Win% "
+                            f"**{ml_rep['test_base_win_rate_pct']}% → {ml_rep['test_filtered_win_rate_pct']}%** "
+                            f"(kept {ml_rep['test_trades_kept']}/{ml_rep['test_trades']} test trades)"
+                        )
+                except Exception:
+                    pass
+        with ml_c2:
+            if not IS_CLOUD:
+                can_train_ml = n_closed_tr >= min_req_tr
+                if st.button(
+                    "🧠 Train Bot Learner" if can_train_ml else f"🔒 Need {min_req_tr - n_closed_tr} More Trades",
+                    disabled=not can_train_ml,
+                    use_container_width=True,
+                    key="btn_train_bot_ml",
+                ):
+                    res_ml = train_bot_meta_learner(min_trades=min_req_tr)
+                    if res_ml.get("ok"):
+                        st.success(f"Trained! OOS Win%: {res_ml['test_filtered_win_rate_pct']}%")
+                        st.rerun()
+                    else:
+                        st.warning(res_ml.get("reason", "Could not train yet."))
+
     if diag.get("total_trades", 0) > 0:
         dc1, dc2, dc3 = st.columns(3)
         with dc1:
