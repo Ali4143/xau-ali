@@ -345,6 +345,7 @@ display_tz = st.sidebar.selectbox(
 )
 show_m15_bg = st.sidebar.checkbox("Overlay 15M Candles", value=False)
 show_rsi_pane = st.sidebar.checkbox("Show Lower RSI(14) Pane", value=False)
+show_liquidity = st.sidebar.checkbox("🏦 Show Liquidity Pools & Sweeps", value=True)
 st.sidebar.caption("Individual Model Overlays (Default: Ensemble only):")
 show_members = [m_key for m_key in CORE_MODEL_CLASSES if st.sidebar.checkbox(m_key.upper(), value=False, key=f"chk_{m_key}")]
 
@@ -678,6 +679,59 @@ def _render_live_terminal_section() -> None:
             unsafe_allow_html=True,
         )
 
+    # 🏦 Institutional Footprint, Cross-Market Macro (DXY/Silver/US10Y) & 1:2 RR Radar
+    inst_sum = None
+    if not df_m1_l.empty:
+        from xau_mtf.institutional import build_institutional_summary, fetch_cross_market_snapshot
+
+        cross_snap = fetch_cross_market_snapshot(df_xau_m1=df_m1_l, max_age_sec=55, allow_network=auto_live_fetch)
+        inst_sum = build_institutional_summary(df_m1=df_m1_l, active_fc=live_refresh_fc_l or active_fc_l, cross_snap=cross_snap)
+        if inst_sum:
+            c_assets = (cross_snap or {}).get("assets") or {}
+            macro_pills = []
+            for m_sym, m_lbl in (("DXY", "💵 DXY"), ("XAGUSD", "🥈 Silver"), ("US10Y", "🏛️ US10Y")):
+                a = c_assets.get(m_sym)
+                if a:
+                    imp = a.get("gold_impact", "NEUTRAL")
+                    icol = "#34D399" if imp == "BULLISH" else ("#F87171" if imp == "BEARISH" else "#94A3B8")
+                    macro_pills.append(
+                        f'<span style="background:#0D1526;border:1px solid #1E293B;border-radius:6px;padding:2px 8px;font-size:11px;color:#E2E8F0;">'
+                        f'<b>{m_lbl}:</b> {a["price"]:,.3f} <span style="color:{icol};">({a["chg15_pct"]:+.2f}% 15m → {imp})</span></span>'
+                    )
+            if not macro_pills:
+                macro_pills.append('<span style="font-size:11px;color:#94A3B8;">Cross-market live feed loading...</span>')
+
+            rr_txt = (
+                f"Entry <b>${inst_sum['p_now']:,.2f}</b> · SL <b style='color:#F87171;'>${inst_sum['sl_price']:,.2f}</b> (-${inst_sum['sl_dist']:.2f}) · "
+                f"TP <b style='color:#34D399;'>${inst_sum['tp_price']:,.2f}</b> (+${inst_sum['tp_dist']:.2f} · 1:2 RR)"
+                if inst_sum.get("sl_price") is not None
+                else f"No Active Setup (ATR15: ${inst_sum['atr15']:.2f} · Suggested 1:2 RR = ±${inst_sum['sl_dist']:.2f} / ±${inst_sum['tp_dist']:.2f})"
+            )
+            lvls = inst_sum.get("levels") or {}
+            st.markdown(
+                f"""<div style="background:#0A101E;border:1px solid #1E293B;border-radius:8px;padding:8px 12px;margin:0 0 8px 0;">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
+                    <span style="font-size:12px;color:#F8FAFC;">
+                        🏦 <b>Institutional Radar:</b>
+                        <b style="color:{inst_sum['verdict_color']};">{inst_sum['verdict']}</b>
+                        <span style="color:#94A3B8;">(Score: {inst_sum['inst_score']:+.1f})</span>
+                        &nbsp;|&nbsp; <b>Regime:</b> <b style="color:{inst_sum['regime_color']};">{inst_sum['regime_label']}</b>
+                        <span style="color:#94A3B8;">(ER {inst_sum['efficiency_ratio']:.2f} · VolZ {inst_sum['vol_z_60']:+.1f})</span>
+                    </span>
+                    <span style="font-size:11px;color:#CBD5E1;"><b>VPIN Toxicity:</b> {inst_sum['vpin_proxy']*100:.1f}% · <b>CVD(20):</b> {inst_sum['cvd_20']:+.2f} · <b>{inst_sum['sweep_label']}</b></span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:5px;">
+                    {"".join(macro_pills)}
+                    <span style="background:#0D1526;border:1px solid #334155;border-radius:6px;padding:2px 8px;font-size:11px;color:#E2E8F0;"><b>SMT:</b> {inst_sum['smt_status']}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#94A3B8;">
+                    <span>🎯 <b>1:2 RR Plan:</b> <span style="color:#E2E8F0;">{rr_txt}</span></span>
+                    <span>🏦 <b>Pools:</b> PDH ${lvls.get('PDH',0):,.2f} / PDL ${lvls.get('PDL',0):,.2f} · Asian ${lvls.get('Asian_L',0):,.2f}–${lvls.get('Asian_H',0):,.2f} · London ${lvls.get('London_L',0):,.2f}–${lvls.get('London_H',0):,.2f}</span>
+                </div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
     # Full-Screen Interactive Forecast Chart
     if not df_m1_l.empty:
         fig = build_mtf_forecast_chart(
@@ -689,6 +743,8 @@ def _render_live_terminal_section() -> None:
             show_members=show_members,
             show_m15_bg=show_m15_bg,
             show_rsi_pane=show_rsi_pane,
+            show_liquidity=show_liquidity,
+            inst_summary=inst_sum,
             history_minutes=history_minutes,
             display_tz=display_tz,
             height=650,

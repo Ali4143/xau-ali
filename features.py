@@ -124,6 +124,7 @@ def build_mtf_features(
     df_m1: pd.DataFrame,
     df_m15: pd.DataFrame,
     use_wavelet: bool = True,
+    include_institutional: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Build strictly causal MTF feature table aligned to every 1M decision bar t.
 
@@ -262,6 +263,14 @@ def build_mtf_features(
     sflags = session_flags(s.index)
     for col in sflags.columns:
         f[col] = sflags[col]
+
+    # ── F) OPTIONAL INSTITUTIONAL FOOTPRINT FEATURES (100% CAUSAL) ───────────
+    if include_institutional:
+        from .institutional import INST_FEATURE_COLS, compute_institutional_features
+
+        inst_f = compute_institutional_features(s)
+        for col in INST_FEATURE_COLS:
+            f[f"inst_{col}"] = inst_f[col].astype(np.float32)
 
     aux = pd.DataFrame(
         {

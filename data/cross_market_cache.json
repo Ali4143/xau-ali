@@ -1,0 +1,34 @@
+{
+  "ok": true,
+  "fetched_epoch": 1795638722.5248072,
+  "fetched_utc": "2026-11-25T20:32:04.041200+00:00",
+  "assets": {
+    "DXY": {
+      "exchange": "TVC",
+      "price": 103.662,
+      "chg15_pct": -0.0068,
+      "chg60_pct": 0.0531,
+      "gold_impact": "NEUTRAL",
+      "gold_sign": -1.0
+    },
+    "XAGUSD": {
+      "exchange": "OANDA",
+      "price": 40.8535,
+      "chg15_pct": -0.2685,
+      "chg60_pct": 0.2146,
+      "gold_impact": "BEARISH",
+      "gold_sign": 1.0
+    },
+    "US10Y": {
+      "exchange": "TVC",
+      "price": 4.848,
+      "chg15_pct": -0.0824,
+      "chg60_pct": 0.2481,
+      "gold_impact": "BULLISH",
+      "gold_sign": -1.0
+    }
+  },
+  "macro_bias_score": -21.1,
+  "smt_status": "\u2796 Aligned (No Divergence)",
+  "smt_signal": 0
+}

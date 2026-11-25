@@ -51,6 +51,8 @@ def build_mtf_forecast_chart(
     show_members: Optional[list[str]] = None,
     show_m15_bg: bool = False,
     show_rsi_pane: bool = False,
+    show_liquidity: bool = True,
+    inst_summary: Optional[dict] = None,
     history_minutes: int = 30,
     display_tz: str = "UTC",
     height: int = 640,
@@ -356,6 +358,74 @@ def build_mtf_forecast_chart(
                     xanchor="right", yanchor="bottom", font=dict(size=10, color=col),
                     row=1, col=1,
                 )
+
+        # Institutional Liquidity Pools (PDH/PDL, Asian H/L, London H/L) & Stop-Hunt Sweeps
+        if show_liquidity and inst_summary:
+            liq_lvls = inst_summary.get("levels") or {}
+            liq_colors = {
+                "PDH": "#F472B6",
+                "PDL": "#F472B6",
+                "Asian_H": "#A78BFA",
+                "Asian_L": "#A78BFA",
+                "London_H": "#38BDF8",
+                "London_L": "#38BDF8",
+            }
+            for lk, lval in liq_lvls.items():
+                if lval is None or not np.isfinite(lval):
+                    continue
+                if (y_lo_ref - 22.0) <= float(lval) <= (y_hi_ref + 22.0):
+                    lcol = liq_colors.get(lk, "#94A3B8")
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[x_start, x_end],
+                            y=[lval, lval],
+                            mode="lines",
+                            name=f"🏦 {lk}: {lval:,.2f}",
+                            line=dict(color=lcol, width=1.0, dash="longdash"),
+                            opacity=0.65,
+                            hovertemplate=f"Liquidity {lk}: ${lval:,.2f}<extra></extra>",
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_annotation(
+                        x=x_end, y=lval, xref="x", yref="y",
+                        text=f"🏦 {lk} {lval:,.2f}", showarrow=False,
+                        xanchor="right", yanchor="top", font=dict(size=9, color=lcol),
+                        row=1, col=1,
+                    )
+
+            inst_tail = inst_summary.get("inst_tail")
+            if isinstance(inst_tail, pd.DataFrame) and not inst_tail.empty and not m1_view.empty:
+                sw_view = inst_tail.reindex(m1_view.index)["liq_sweep"].fillna(0.0)
+                bull_m = sw_view > 0.5
+                bear_m = sw_view < -0.5
+                if bull_m.any():
+                    fig.add_trace(
+                        go.Scatter(
+                            x=_to_display_tz(m1_view.index[bull_m], display_tz),
+                            y=m1_view.loc[bull_m, "low"] - 0.6,
+                            mode="markers",
+                            name="⚡ Bull Stop-Hunt Sweep",
+                            marker=dict(symbol="triangle-up", size=9, color="#34D399", line=dict(color="#FFFFFF", width=0.7)),
+                            hovertemplate="%{x|%H:%M}<br>⚡ Bull Liquidity Sweep<extra></extra>",
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                if bear_m.any():
+                    fig.add_trace(
+                        go.Scatter(
+                            x=_to_display_tz(m1_view.index[bear_m], display_tz),
+                            y=m1_view.loc[bear_m, "high"] + 0.6,
+                            mode="markers",
+                            name="⚡ Bear Stop-Hunt Sweep",
+                            marker=dict(symbol="triangle-down", size=9, color="#F87171", line=dict(color="#FFFFFF", width=0.7)),
+                            hovertemplate="%{x|%H:%M}<br>⚡ Bear Liquidity Sweep<extra></extra>",
+                        ),
+                        row=1,
+                        col=1,
+                    )
 
         # Vertical Origin Lock Line & Top Annotation (Exact KSE-100 style)
         fig.add_vline(x=origin_disp, line=dict(color="#5A6270", width=1, dash="dash"), row=1, col=1)
