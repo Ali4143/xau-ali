@@ -202,7 +202,7 @@ def train_all(
     (model_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     # Atomically swap staging -> live models folder (with automatic backup of previous models)
-    backup_dir = config.ROOT_DIR / "backups" / f"prev_models_{symbol.lower()}"
+    backup_dir = config.ROOT / "backups" / f"prev_models_{symbol.lower()}"
     backup_dir.parent.mkdir(parents=True, exist_ok=True)
     if live_model_dir.exists():
         if backup_dir.exists():

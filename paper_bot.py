@@ -18,7 +18,7 @@ import pandas as pd
 
 from . import config
 
-PAPER_DIR = config.ROOT_DIR / "paper_trading"
+PAPER_DIR = config.ROOT / "paper_trading"
 PAPER_DIR.mkdir(parents=True, exist_ok=True)
 BOT_STATE_FILE = PAPER_DIR / "bot_state.json"
 TRADE_HISTORY_FILE = PAPER_DIR / "trade_history.jsonl"
