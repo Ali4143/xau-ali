@@ -333,45 +333,49 @@ if not IS_CLOUD:
 st.sidebar.subheader("3️⃣ Chart, Forecaster & Timezone")
 
 
-def _resolve_auto_best_forecaster() -> tuple[str, str]:
-    """Pick #1 best forecaster automatically from latest metrics_v2.json (Ensemble vs individual models)."""
-    v2_p = config.REPORTS_DIR / "v2" / "metrics_v2.json"
-    if v2_p.exists():
-        try:
-            rep = json.loads(v2_p.read_text(encoding="utf-8"))
-            cands = [
-                r
-                for r in (rep.get("models") or [])
-                if str(r.get("model", "")).lower() in ("ensemble", "tft", "lightgbm", "tcn", "wavelet_bilstm", "timemixer")
-                and r.get("MAE_USD") is not None
-            ]
-            if cands:
-                best = min(cands, key=lambda r: float(r["MAE_USD"]))
-                m_key = str(best["model"]).lower()
-                da3 = best.get("DA_3h_pct")
-                da_txt = f"{float(da3):.1f}% 3h DA" if da3 is not None else f"MAE ${float(best['MAE_USD']):.2f}"
-                return m_key, f"Auto Best → {m_key.upper()} ({da_txt})"
-        except Exception:
-            pass
-    return "tft", "Auto Best → TFT (Default)"
+def _load_latest_metrics_report() -> dict | None:
+    """Load whichever of metrics.json or v2/metrics_v2.json was generated most recently."""
+    r1 = config.REPORTS_DIR / "metrics.json"
+    r2 = config.REPORTS_DIR / "v2" / "metrics_v2.json"
+    cands = [p for p in (r1, r2) if p.exists()]
+    if not cands:
+        return None
+    newest = max(cands, key=lambda p: p.stat().st_mtime)
+    try:
+        return json.loads(newest.read_text(encoding="utf-8"))
+    except Exception:
+        return None
 
 
-_auto_best_key, _auto_best_lbl = _resolve_auto_best_forecaster()
-_fc_sel = st.sidebar.selectbox(
+def _resolve_passing_blend_label() -> str:
+    rep = _load_latest_metrics_report()
+    if rep:
+        ms = {str(r.get("model", "")).lower(): r for r in rep.get("models", []) if r.get("MAE_USD") is not None}
+        nc_m = float((ms.get("no_change") or {}).get("MAE_USD") or 1e9)
+        winners = [
+            k.upper() for k in ("tft", "wavelet_bilstm", "lightgbm", "tcn", "timemixer")
+            if k in ms and float(ms[k]["MAE_USD"]) < nc_m
+        ]
+        if winners:
+            return f"Passing Models Blend → {' + '.join(winners)}"
+    return "Passing Models Blend → TFT + WAVELET_BILSTM"
+
+
+_passing_lbl = _resolve_passing_blend_label()
+forecaster_choice = st.sidebar.selectbox(
     "Active Forecaster Engine",
-    ["auto", "tft", "ensemble", "lightgbm", "tcn", "wavelet_bilstm"],
+    ["passing_blend", "ensemble", "tft", "wavelet_bilstm", "lightgbm", "tcn"],
     index=0,
     format_func=lambda k: (
-        f"🏆 {_auto_best_lbl}"
-        if k == "auto"
+        f"🏆 {_passing_lbl}"
+        if k == "passing_blend"
         else (
-            "TFT (Neural Transformer)"
-            if k == "tft"
-            else ("Ensemble (Multi-Model Blend)" if k == "ensemble" else k.upper())
+            "Ensemble (All Passing · KSE100 Weights)"
+            if k == "ensemble"
+            else ("TFT (Neural Transformer)" if k == "tft" else k.upper())
         )
     ),
 )
-forecaster_choice = _auto_best_key if _fc_sel == "auto" else _fc_sel
 display_tz = st.sidebar.selectbox(
     "Chart Timezone (Default: UTC)",
     ["UTC", "Asia/Karachi", "America/New_York"],
@@ -601,13 +605,7 @@ def _render_live_terminal_section() -> None:
         )
 
     # Compact HUD (tracks live 1M candles against latest Taaza or Locked forecast)
-    v2_f = config.REPORTS_DIR / "v2" / "metrics_v2.json"
-    v1_f = config.REPORTS_DIR / "metrics.json"
-    rep_l = (
-        json.loads(v2_f.read_text(encoding="utf-8"))
-        if v2_f.exists()
-        else (json.loads(v1_f.read_text(encoding="utf-8")) if v1_f.exists() else None)
-    )
+    rep_l = _load_latest_metrics_report()
     sc = compute_live_scorecard(df_m1_l, live_refresh_fc_l or active_fc_l) if not df_m1_l.empty else {}
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -874,14 +872,8 @@ def _render_live_terminal_section() -> None:
 
 _render_live_terminal_section()
 
-# Load static reports for bottom analytics tabs
-v2_file = config.REPORTS_DIR / "v2" / "metrics_v2.json"
-v1_file = config.REPORTS_DIR / "metrics.json"
-rep_data = (
-    json.loads(v2_file.read_text(encoding="utf-8"))
-    if v2_file.exists()
-    else (json.loads(v1_file.read_text(encoding="utf-8")) if v1_file.exists() else None)
-)
+# Load newest static report for bottom analytics tabs
+rep_data = _load_latest_metrics_report()
 df_m1_hist = load_m1(symbol)
 all_fcs_hist = [r for r in load_forecast_log(limit=25) if r.get("symbol") == symbol.upper()]
 accuracy_history = evaluate_logged_forecasts_accuracy(df_m1_hist, all_fcs_hist, save_file=False)

@@ -267,7 +267,39 @@ def generate_forecast(
         member_preds_norm[m_name] = p_norm
         member_q50_price[m_name] = (P0 + p_norm[0, :H_eff, 1] * atr15).round(2).tolist()
 
-    if forecaster in member_preds_norm:
+    if forecaster == "passing_blend":
+        # Dynamically blend ONLY models that beat NoChange MAE in the latest report (fallback: tft + wavelet_bilstm)
+        pass_w: dict[str, float] = {}
+        try:
+            r1 = config.REPORTS_DIR / "metrics.json"
+            r2 = config.REPORTS_DIR / "v2" / "metrics_v2.json"
+            rp = r1 if (r1.exists() and (not r2.exists() or r1.stat().st_mtime >= r2.stat().st_mtime)) else r2
+            if rp.exists():
+                rep_j = json.loads(rp.read_text(encoding="utf-8"))
+                ms = {str(x["model"]).lower(): x for x in rep_j.get("models", []) if x.get("MAE_USD") is not None}
+                nc_m = float((ms.get("no_change") or {}).get("MAE_USD") or 1e9)
+                winners = [
+                    k for k in member_preds_norm
+                    if k in ms and float(ms[k]["MAE_USD"]) < nc_m
+                ]
+                if winners:
+                    # Weight passing models by (improvement_over_nochange + DA_3h bonus)
+                    scores = {}
+                    for k in winners:
+                        imp = max(0.01, nc_m - float(ms[k]["MAE_USD"]))
+                        da3 = float(ms[k].get("DA_3h_pct") or 50.0)
+                        scores[k] = imp * max(0.5, da3 / 50.0)
+                    tot_s = sum(scores.values())
+                    pass_w = {k: round(v / tot_s, 4) for k, v in scores.items()}
+        except Exception:
+            pass
+        if not pass_w:
+            tw = [k for k in ("tft", "wavelet_bilstm") if k in member_preds_norm]
+            pass_w = {k: round(1.0 / len(tw), 4) for k in tw} if tw else weights
+        ens_norm = blend_predictions(member_preds_norm, pass_w)
+        used_forecaster = "+".join(k.upper() for k in pass_w if pass_w[k] > 0)
+        weights = pass_w
+    elif forecaster in member_preds_norm:
         ens_norm = member_preds_norm[forecaster]
         used_forecaster = forecaster
     else:

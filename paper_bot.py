@@ -180,13 +180,13 @@ def _score_entry_signal(
     q50 = fc["q50"]
     p0 = float(fc.get("P0", p_now))
     atr15 = max(float(fc.get("atr15_usd", (inst_sum or {}).get("atr15", 8.0))), 2.5)
-    # Track A looks at 1h..end forecast; Track B looks at 15m..45m short-term horizon
-    horizon_idx = min(len(q50) - 1, 59 if track == "6H_FIX" else 14)
+    # Track A (6H_FIX) uses 3h horizon (where Wavelet 59.4% & TFT 54.1% excel); Track B uses 15m horizon
+    horizon_idx = min(len(q50) - 1, 179 if track == "6H_FIX" else 14)
     q50_tgt = float(q50[horizon_idx])
     delta = q50_tgt - p_now if track == "15M_TAAZA" else (q50_tgt - p0)
 
-    # Require meaningful directional tilt (>= 0.12 * ATR15 or >= $1.20)
-    min_move = max(0.12 * atr15, 1.20)
+    # Meaningful directional tilt (6H_FIX uses softer 0.08*ATR so Orange swing trades actually fire)
+    min_move = max(0.08 * atr15, 1.00) if track == "6H_FIX" else max(0.12 * atr15, 1.20)
     if abs(delta) < min_move:
         return None
     side = "LONG" if delta > 0 else "SHORT"
@@ -247,13 +247,12 @@ def _score_entry_signal(
         tp_px = round(p_now + d * tp_dist, 2)
         sl_px = round(p_now - d * sl_dist, 2)
     else:
-        # 15m Taaza fast scalp: use Pattern T1 if aligned, else quick 0.85 * ATR15 target
+        # 15m Taaza scalp: wider breath SL (>= 0.95*ATR15 or $4.50) & positive RR (TP >= 1.35 * SL)
+        sl_dist = float(np.clip(0.95 * atr15, 4.50, 14.0))
         if lad and int(lad.get("dir", 0)) == d and lad.get("active_target_price"):
-            tp_dist = max(abs(float(lad["active_target_price"]) - p_now), 2.50)
+            tp_dist = max(abs(float(lad["active_target_price"]) - p_now), 1.35 * sl_dist)
         else:
-            tp_dist = max(min(abs(delta) * 1.15, 1.2 * atr15), 2.80)
-        sl_dist = max(0.65 * tp_dist, 2.20)
-        sl_dist = min(sl_dist, 1.3 * atr15)
+            tp_dist = max(abs(delta) * 1.25, 1.35 * sl_dist)
         tp_px = round(p_now + d * tp_dist, 2)
         sl_px = round(p_now - d * sl_dist, 2)
 
@@ -424,8 +423,9 @@ def tick_paper_bot(
                         tr["breakeven_armed"] = True
                     state["last_event"] = f"🚀 15M_TAAZA {side} Fast Momentum -> Extended TP to ${tr['tp_price']:,.2f}"
 
-            # Smart 15m Boundary Rule (minute :14, :29, :44, :59 -> lock profit cleanly!)
-            if (t_now.minute % 15) == 14 and fl_net >= 0.50:
+            # Smart 15m Boundary Rule (minute :14, :29, :44, :59 -> lock profit ONLY if >= +0.75R so winners aren't cut tiny!)
+            risk_tr = abs(entry_px - float(tr["initial_sl"])) * float(tr["lot_size"]) * OZ_PER_LOT
+            if (t_now.minute % 15) == 14 and fl_net >= max(0.75 * risk_tr, 2.50):
                 close_trade_now(state, tr, exit_price=p_now, exit_reason="15M_PROFIT_LOCK", exit_time_utc=t_now_iso)
                 continue
 
@@ -485,7 +485,24 @@ def tick_paper_bot(
 
             sig = _score_entry_signal(track, fc_src, p_now, inst_sum)
             if sig and sig["confidence"] >= min_conf:
+                # CHOP Filter (from 26-trade diagnostics): skip CHOP unless >=80% confidence + confirmed Liquidity Sweep
+                sweep_dir = int((inst_sum or {}).get("sweep_dir", 0))
+                if reg_code == 0 and not (sig["confidence"] >= 80.0 and sweep_dir != 0):
+                    state["last_event"] = f"🛡️ Skipped {track} {sig['side']} in CHOP/RANGE (Conf {sig['confidence']:.0f}% < 80%+Sweep)"
+                    continue
+
                 lot, lot_tier = _select_lot_size(sig["confidence"], state)
+                # Heavy lots (0.05 / 0.10) ONLY in CLEAN TREND (never in CHOP!)
+                if reg_code != 1 and lot > float(state.get("lot_normal", 0.01)):
+                    lot = float(state.get("lot_normal", 0.01))
+                    lot_tier = "NORMAL (CHOP Cap)"
+                # Hard 1% Max Account Risk Cap per trade (prevents -$88 single-SL blowups!)
+                sl_d = max(abs(float(sig["entry_price"]) - float(sig["sl_price"])), 1.0)
+                max_risk_usd = max(float(state.get("balance", 5000.0)) * 0.01, 10.0)
+                max_safe_lot = max(0.01, round(np.floor((max_risk_usd / (sl_d * OZ_PER_LOT)) * 100.0) / 100.0, 2))
+                if lot > max_safe_lot:
+                    lot = max_safe_lot
+                    lot_tier = f"{lot_tier} (1% Risk Cap)"
                 pat_d = (inst_sum or {}).get("patterns") or {}
                 trade_obj = {
                     "trade_id": uuid.uuid4().hex[:8],

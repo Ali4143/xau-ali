@@ -82,7 +82,11 @@ def test_paper_bot_full_lifecycle() -> None:
         st = pb.tick_paper_bot(df, fc_6h, fc_15m, inst)
         assert len(st["open_trades"]) == 2, f"Expected 2 open trades, got {len(st['open_trades'])}"
         lots = {t["track"]: t["lot_size"] for t in st["open_trades"]}
-        assert lots["6H_FIX"] in (0.05, 0.10) and lots["15M_TAAZA"] in (0.05, 0.10), lots
+        # Verify dynamic lot scaling + hard 1% max risk cap (e.g. 0.10 scaled to <=0.08 so risk <= $50)
+        assert 0.01 <= lots["6H_FIX"] <= 0.10 and 0.01 <= lots["15M_TAAZA"] <= 0.10, lots
+        for tr_o in st["open_trades"]:
+            sl_risk = abs(tr_o["entry_price"] - tr_o["sl_price"]) * tr_o["lot_size"] * 100.0
+            assert sl_risk <= 55.0, f"1% risk cap exceeded: {sl_risk}"
 
         # 3. Price rallies to hit 15M_TAAZA TP ($3506) & arm 6H_FIX Breakeven, then hits 6H_FIX TP ($3516)
         df2 = _make_bars([3500.0, 3500.2, 3500.5, 3507.0, 3510.0, 3517.0])
