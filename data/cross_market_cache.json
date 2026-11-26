@@ -1,34 +1,34 @@
 {
   "ok": true,
-  "fetched_epoch": 1795641586.0976884,
-  "fetched_utc": "2026-11-25T21:19:47.998791+00:00",
+  "fetched_epoch": 1795675997.4054615,
+  "fetched_utc": "2026-11-26T06:53:18.617708+00:00",
   "assets": {
     "DXY": {
       "exchange": "TVC",
-      "price": 103.702,
-      "chg15_pct": 0.0058,
-      "chg60_pct": 0.0309,
+      "price": 103.798,
+      "chg15_pct": 0.0039,
+      "chg60_pct": -0.0241,
       "gold_impact": "NEUTRAL",
       "gold_sign": -1.0
     },
     "XAGUSD": {
       "exchange": "OANDA",
-      "price": 41.1395,
-      "chg15_pct": 0.1595,
-      "chg60_pct": 0.5536,
-      "gold_impact": "BULLISH",
+      "price": 41.313,
+      "chg15_pct": -0.1378,
+      "chg60_pct": -1.0491,
+      "gold_impact": "BEARISH",
       "gold_sign": 1.0
     },
     "US10Y": {
       "exchange": "TVC",
-      "price": 4.868,
-      "chg15_pct": 0.0822,
-      "chg60_pct": 0.4125,
-      "gold_impact": "BEARISH",
+      "price": 4.864,
+      "chg15_pct": 0.0,
+      "chg60_pct": 0.33,
+      "gold_impact": "NEUTRAL",
       "gold_sign": -1.0
     }
   },
-  "macro_bias_score": 10.8,
-  "smt_status": "\u2796 Aligned (No Divergence)",
-  "smt_signal": 0
+  "macro_bias_score": -18.5,
+  "smt_status": "\ud83d\udd34 BEARISH SILVER LEAD (XAGUSD Broke Low, Gold Lagging)",
+  "smt_signal": -1
 }

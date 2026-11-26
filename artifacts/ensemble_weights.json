@@ -1,7 +1,7 @@
 {
-  "lightgbm": 0.5649,
-  "tcn": 0.4351,
-  "tft": 0.0,
-  "wavelet_bilstm": 0.0,
+  "lightgbm": 0.2925,
+  "tcn": 0.0707,
+  "tft": 0.1152,
+  "wavelet_bilstm": 0.5216,
   "timemixer": 0.0
 }

@@ -1,7 +1,7 @@
 {
   "name": "tft",
   "L": 120,
-  "F": 59,
+  "F": 76,
   "C_dim": 10,
   "H": 360,
   "seeds": [
@@ -21,7 +21,7 @@
       "seed": 11,
       "epochs_run": 10,
       "best_epoch": 2,
-      "best_val_loss": 0.5926732420921326
+      "best_val_loss": 0.602446436882019
     }
   ],
   "cpu_only": false

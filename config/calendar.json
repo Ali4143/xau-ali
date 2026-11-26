@@ -1,9 +1,9 @@
 {
   "timezone_internal": "UTC",
   "forex_day_boundary": "17:00 America/New_York",
-  "total_bars": 354462,
+  "total_bars": 354674,
   "start_utc": "2025-11-25 17:09:00+00:00",
-  "end_utc": "2026-11-25 18:27:00+00:00",
+  "end_utc": "2026-11-25 21:59:00+00:00",
   "total_gaps_ge_45m": 258,
   "weekend_gaps_count": 54,
   "maintenance_gaps_count": 204,

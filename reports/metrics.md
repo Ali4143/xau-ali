@@ -3,27 +3,27 @@
 > **Deployment Gate Verdict:** **NOT VERIFIED** (`Research output, not verified.`)
 
 ### Failed Gate Conditions:
-- ❌ Cond 1 FAILED: Ensemble skill (-1.53%) <= 0% vs NoChange
-- ❌ Cond 2 FAILED: Ensemble MAE ($13.626) worse than single member(s): lightgbm ($13.523), tft ($13.306), wavelet_bilstm ($13.503)
-- ❌ Cond 3a FAILED: HAC DM Holm p=1.0000 (n=3421, status=OK)
+- ❌ Cond 1 FAILED: Ensemble skill (-0.07%) <= 0% vs NoChange
+- ❌ Cond 2 FAILED: Ensemble MAE ($13.691) worse than single member(s): tft ($13.628), wavelet_bilstm ($13.644)
+- ❌ Cond 3a FAILED: HAC DM Holm p=1.0000 (n=1730, status=OK)
 - ❌ Cond 3b FAILED: Non-Overlap DM Holm p=1.0000 (n=151, status=OK)
 - ❌ Cond 5 FAILED: Walk-forward positive folds 0.0% < 60% (0/0)
 
-- **Data Range:** `2025-11-25 17:09:00+00:00` to `2026-11-25 19:24:00+00:00` (`354,519` 1M bars)
-- **Frozen Validation Ensemble Weights (v2):** `{"lightgbm": 0.5649, "tcn": 0.4351, "tft": 0.0, "wavelet_bilstm": 0.0, "timemixer": 0.0}`
+- **Data Range:** `2025-11-25 17:09:00+00:00` to `2026-11-25 22:59:00+00:00` (`354,734` 1M bars)
+- **Frozen Validation Ensemble Weights (v2):** `{"lightgbm": 0.2925, "tcn": 0.0707, "tft": 0.1152, "wavelet_bilstm": 0.5216, "timemixer": 0.0}`
 
 ## Model Comparison (Out-of-Sample TEST Set Only — Raw & Holm-Bonferroni Adjusted)
 
 | Model | MAE (USD) | RMSE (USD) | 80% Cov | DA 1h (excl flat) | DA 3h | DA EOS | Skill | HAC p (Holm) | Non-Ovlp p (Holm, n) | 1h Net Proxy* |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **no_change** | 13.420 | 19.597 | 78.9% | N/A (flat forecast) (3310) | N/A (flat forecast) | N/A (flat forecast) | — | — | — | $+0.000 (0t) |
-| **hist_profile** | 13.416 | 19.573 | 77.8% | 51.12% (0) | 50.63% | 51.07% | +0.03% | 0.6508 (1.0000) | 0.9527 (1.0000, n=151) | $+1.709 (604t) |
-| **lightgbm** | 13.523 | 19.810 | 78.5% | 49.21% (0) | 51.53% | 45.72% | -0.77% | 0.9829 (1.0000) | 0.6468 (1.0000, n=151) | $+0.000 (0t) |
-| **tcn** | 13.813 | 20.114 | 78.7% | 47.22% (0) | 47.38% | 41.86% | -2.93% | 1.0000 (1.0000) | 0.9931 (1.0000, n=151) | $-1.004 (1144t) |
-| **tft** | 13.306 | 19.507 | 79.6% | 54.41% (0) | 56.74% | 55.25% | +0.84% | 0.0452 (0.3163) | 0.1153 (0.8070, n=151) | $+0.544 (2705t) |
-| **wavelet_bilstm** | 13.503 | 19.685 | 79.9% | 50.00% (0) | 42.07% | 46.21% | -0.62% | 0.9999 (1.0000) | 0.9938 (1.0000, n=151) | $-0.271 (214t) |
-| **timemixer** | 13.860 | 20.176 | 78.3% | 46.04% (0) | 43.26% | 41.74% | -3.28% | 1.0000 (1.0000) | 0.9940 (1.0000, n=151) | $-0.665 (1856t) |
-| **ensemble** | 13.626 | 19.913 | 79.4% | 47.19% (0) | 46.48% | 41.83% | -1.53% | 0.9995 (1.0000) | 0.9357 (1.0000, n=151) | $-1.256 (153t) |
+| **no_change** | 13.682 | 20.031 | 78.3% | N/A (flat forecast) (1656) | N/A (flat forecast) | N/A (flat forecast) | — | — | — | $+0.000 (0t) |
+| **hist_profile** | 13.689 | 20.033 | 76.8% | 53.14% (0) | 51.46% | 50.92% | -0.05% | 0.8070 (1.0000) | 0.9727 (1.0000, n=151) | $+0.888 (454t) |
+| **lightgbm** | 13.817 | 20.269 | 78.6% | 51.51% (0) | 49.27% | 45.95% | -0.99% | 0.9700 (1.0000) | 0.7794 (1.0000, n=151) | $-0.068 (344t) |
+| **tcn** | 13.852 | 20.214 | 71.9% | 49.40% (0) | 46.82% | 42.49% | -1.24% | 0.9996 (1.0000) | 0.9863 (1.0000, n=151) | $-0.157 (103t) |
+| **tft** | 13.628 | 19.970 | 79.0% | 49.94% (0) | 54.05% | 51.33% | +0.39% | 0.0236 (0.1651) | 0.0254 (0.1777, n=151) | $-0.768 (111t) |
+| **wavelet_bilstm** | 13.644 | 19.997 | 81.8% | 46.14% (0) | 59.42% | 50.17% | +0.27% | 0.0322 (0.1933) | 0.2006 (1.0000, n=151) | $+1.086 (309t) |
+| **timemixer** | 14.156 | 20.554 | 75.0% | 48.19% (0) | 39.92% | 43.76% | -3.47% | 1.0000 (1.0000) | 1.0000 (1.0000, n=151) | $-0.637 (1009t) |
+| **ensemble** | 13.691 | 20.062 | 80.7% | 48.73% (0) | 56.37% | 44.80% | -0.07% | 0.6656 (1.0000) | 0.4998 (1.0000, n=151) | $+0.956 (55t) |
 
 *`1h Net Proxy`: Directional proxy, not a trading backtest. Cost applied ONLY on non-flat positions (`|q50[+60]| > 0.10 ATR15`).
 
@@ -35,9 +35,9 @@
 |---:|---|---|---:|---:|---:|---:|---:|---:|---:|
 
 ## Target High / Low Reach vs Naive 2-ATR Baseline
-- Model Target High Reach: **38.91%** (Naive +2 ATR: 33.7%)
-- Model Target Low Reach: **60.16%** (Naive -2 ATR: 51.01%)
-- Full Range Containment (q10-q90): **63.81%**
+- Model Target High Reach: **39.77%** (Naive +2 ATR: 34.22%)
+- Model Target Low Reach: **57.63%** (Naive -2 ATR: 50.06%)
+- Full Range Containment (q10-q90): **67.63%**
 
 ## Known Limitations
 - The zig-zag path is a **plausible simulated Monte Carlo path**, not a guaranteed price prediction.

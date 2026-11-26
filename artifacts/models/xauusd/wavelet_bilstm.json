@@ -1,7 +1,7 @@
 {
   "name": "wavelet_bilstm",
   "L": 120,
-  "F": 59,
+  "F": 76,
   "C_dim": 10,
   "H": 360,
   "seeds": [
@@ -20,9 +20,9 @@
   "history": [
     {
       "seed": 11,
-      "epochs_run": 9,
-      "best_epoch": 1,
-      "best_val_loss": 0.596152126789093
+      "epochs_run": 10,
+      "best_epoch": 2,
+      "best_val_loss": 0.5972033143043518
     }
   ],
   "cpu_only": false
